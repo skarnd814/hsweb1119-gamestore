@@ -1,0 +1,3 @@
+skarnd-pixelkit @ git+https://github.com/skarnd814/Skarnd_PixelKit.git
+Pillow
+numpy
