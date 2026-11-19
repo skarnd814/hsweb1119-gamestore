@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" width="1600" height="800">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c1240"/>
+      <stop offset="0.36" stop-color="#55296a"/>
+      <stop offset="0.6" stop-color="#c94f6c"/>
+      <stop offset="0.78" stop-color="#ff8a5c"/>
+      <stop offset="1" stop-color="#ffc77c"/>
+    </linearGradient>
+    <radialGradient id="sunCore" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fffbe2"/>
+      <stop offset="0.6" stop-color="#ffda7a"/>
+      <stop offset="1" stop-color="#ffaa55"/>
+    </radialGradient>
+    <radialGradient id="sunGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffd27e" stop-opacity="0.85"/>
+      <stop offset="0.4" stop-color="#ff9c6a" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ff9c6a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hillMid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#56743f"/>
+      <stop offset="1" stop-color="#2a4230"/>
+    </linearGradient>
+    <linearGradient id="hillNear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3e6330"/>
+      <stop offset="1" stop-color="#14231a"/>
+    </linearGradient>
+    <pattern id="crops" width="34" height="22" patternUnits="userSpaceOnUse">
+      <path d="M17 19 q-6 -9 -11 -7 q6 1 11 7 q4 -10 10 -9 q-7 2 -10 9z" fill="#86b94c"/>
+    </pattern>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="soft" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+
+  <rect width="1600" height="800" fill="url(#sky)"/>
+
+  <!-- 별 -->
+  <g fill="#fff">
+    <circle cx="140" cy="60" r="1.6" opacity=".8"/><circle cx="310" cy="120" r="1.2" opacity=".6"/>
+    <circle cx="520" cy="48" r="1.8" opacity=".8"/><circle cx="690" cy="140" r="1.1" opacity=".5"/>
+    <circle cx="860" cy="70" r="1.5" opacity=".7"/><circle cx="1030" cy="36" r="1.2" opacity=".6"/>
+    <circle cx="1240" cy="90" r="1.7" opacity=".7"/><circle cx="1420" cy="54" r="1.3" opacity=".6"/>
+    <circle cx="1530" cy="150" r="1.1" opacity=".5"/><circle cx="420" cy="190" r="1" opacity=".4"/>
+  </g>
+
+  <!-- 해 -->
+  <circle cx="1120" cy="470" r="430" fill="url(#sunGlow)"/>
+  <circle cx="1120" cy="470" r="106" fill="url(#sunCore)"/>
+
+  <!-- 구름 -->
+  <g fill="#ffb8a0" opacity=".45" filter="url(#soft)">
+    <ellipse cx="900" cy="300" rx="170" ry="15"/>
+    <ellipse cx="985" cy="284" rx="90" ry="11"/>
+    <ellipse cx="1360" cy="342" rx="200" ry="13"/>
+    <ellipse cx="1290" cy="328" rx="80" ry="9"/>
+    <ellipse cx="420" cy="250" rx="210" ry="13"/>
+    <ellipse cx="640" cy="378" rx="150" ry="9"/>
+  </g>
+
+  <!-- 새 -->
+  <g fill="none" stroke="#2a1838" stroke-width="3" stroke-linecap="round">
+    <path d="M960 360 q8 -8 16 0 q8 -8 16 0"/>
+    <path d="M1004 336 q6 -6 12 0 q6 -6 12 0"/>
+    <path d="M930 330 q5 -5 10 0 q5 -5 10 0"/>
+  </g>
+
+  <!-- 먼 산 -->
+  <path d="M0 500 L110 455 L210 480 L330 410 L460 478 L590 438 L720 486 L850 430 L990 482 L1100 452 L1240 488 L1390 436 L1510 476 L1600 452 V800 H0Z" fill="#6b3f70" opacity=".72"/>
+  <path d="M0 528 Q180 486 360 516 T720 512 T1080 520 T1440 508 T1600 515 V800 H0Z" fill="#4a3a5e" opacity=".85"/>
+
+  <!-- 중간 언덕 -->
+  <path d="M0 568 Q220 512 470 552 T940 548 T1380 538 T1600 552 V800 H0Z" fill="url(#hillMid)"/>
+
+  <!-- 언덕 위 나무들 -->
+  <g fill="#24392a">
+    <rect x="876" y="508" width="8" height="40"/>
+    <circle cx="880" cy="500" r="26"/><circle cx="864" cy="512" r="18"/><circle cx="898" cy="514" r="18"/>
+    <rect x="756" y="520" width="6" height="30"/>
+    <circle cx="759" cy="514" r="18"/><circle cx="748" cy="522" r="12"/>
+  </g>
+
+  <!-- 헛간과 사일로 -->
+  <g transform="translate(1268 466)">
+    <rect x="148" y="-6" width="36" height="88" fill="#4e3f55"/>
+    <path d="M148 -6 Q166 -34 184 -6Z" fill="#3a2d42"/>
+    <rect x="0" y="22" width="124" height="60" fill="#702632"/>
+    <polygon points="-12,26 62,-22 136,26" fill="#3d1522"/>
+    <polygon points="-12,26 62,-22 62,-12 2,28" fill="#562032"/>
+    <rect x="44" y="42" width="36" height="40" fill="#3d1522"/>
+    <path d="M44 42 L80 82 M80 42 L44 82" stroke="#e8c8a0" stroke-width="3"/>
+    <rect x="44" y="42" width="36" height="40" fill="none" stroke="#e8c8a0" stroke-width="3"/>
+    <rect x="54" y="2" width="16" height="14" fill="#ffd27a"/>
+    <rect x="12" y="40" width="18" height="14" fill="#ffd27a" opacity=".9"/>
+    <rect x="94" y="40" width="18" height="14" fill="#ffd27a" opacity=".9"/>
+  </g>
+  <!-- 오른쪽 큰 나무 -->
+  <g fill="#1d3022">
+    <rect x="1534" y="500" width="14" height="70"/>
+    <circle cx="1540" cy="476" r="46"/><circle cx="1508" cy="500" r="30"/>
+    <circle cx="1574" cy="498" r="32"/><circle cx="1540" cy="440" r="30"/>
+  </g>
+
+  <!-- 앞쪽 밭 -->
+  <path d="M0 640 Q420 576 820 612 T1600 600 V800 H0Z" fill="url(#hillNear)"/>
+  <path d="M0 640 Q420 576 820 612 T1600 600 V800 H0Z" fill="url(#crops)" opacity=".5"/>
+  <g fill="none" stroke="#6c9a3e" stroke-width="3" opacity=".35">
+    <path d="M0 672 Q420 610 820 646 T1600 636"/>
+    <path d="M0 708 Q420 648 820 684 T1600 676"/>
+    <path d="M0 748 Q420 692 820 726 T1600 720"/>
+  </g>
+
+  <!-- 울타리 -->
+  <g fill="#1a120f">
+    <rect x="856" y="594" width="8" height="52"/><rect x="916" y="599" width="8" height="52"/>
+    <rect x="976" y="603" width="8" height="52"/><rect x="1036" y="607" width="8" height="52"/>
+    <rect x="1096" y="610" width="8" height="52"/><rect x="1156" y="612" width="8" height="52"/>
+    <rect x="1216" y="613" width="8" height="52"/><rect x="1276" y="612" width="8" height="52"/>
+    <rect x="1336" y="610" width="8" height="52"/><rect x="1396" y="606" width="8" height="52"/>
+    <rect x="1456" y="600" width="8" height="52"/><rect x="1516" y="592" width="8" height="52"/>
+    <rect x="1576" y="585" width="8" height="52"/>
+  </g>
+  <g fill="none" stroke="#1a120f" stroke-width="5">
+    <polyline points="860,604 920,609 980,613 1040,617 1100,620 1160,622 1220,623 1280,622 1340,620 1400,616 1460,610 1520,602 1580,595"/>
+    <polyline points="860,622 920,627 980,631 1040,635 1100,638 1160,640 1220,641 1280,640 1340,638 1400,634 1460,628 1520,620 1580,613"/>
+  </g>
+
+  <!-- 왼쪽 나무 실루엣 -->
+  <g fill="#122017">
+    <rect x="160" y="560" width="16" height="90"/>
+    <circle cx="168" cy="530" r="58"/><circle cx="124" cy="556" r="38"/><circle cx="212" cy="552" r="40"/><circle cx="170" cy="482" r="36"/>
+  </g>
+
+  <!-- 맨 앞 풀 -->
+  <path d="M0 770 Q200 744 400 762 T800 758 T1200 764 T1600 752 V800 H0Z" fill="#0c140f"/>
+  <g fill="#0c140f">
+    <path d="M60 770 l6 -26 l4 26z"/><path d="M300 764 l5 -22 l5 22z"/><path d="M560 760 l6 -28 l5 28z"/>
+    <path d="M940 762 l5 -24 l5 24z"/><path d="M1180 764 l6 -26 l4 26z"/><path d="M1420 756 l5 -24 l5 24z"/>
+  </g>
+
+  <!-- 반딧불 -->
+  <g fill="#fff4a8">
+    <g filter="url(#glow)" opacity=".9">
+      <circle cx="980" cy="690" r="5"/><circle cx="1210" cy="720" r="4"/><circle cx="1380" cy="680" r="5"/>
+      <circle cx="1490" cy="730" r="4"/><circle cx="1080" cy="740" r="4"/><circle cx="1300" cy="756" r="5"/>
+    </g>
+    <circle cx="980" cy="690" r="2"/><circle cx="1210" cy="720" r="1.6"/><circle cx="1380" cy="680" r="2"/>
+    <circle cx="1490" cy="730" r="1.6"/><circle cx="1080" cy="740" r="1.6"/><circle cx="1300" cy="756" r="2"/>
+  </g>
+</svg>
