@@ -72,6 +72,8 @@ FONT = {
     "S": [".####", "#....", "#....", ".###.", "....#", "....#", "####."],
     "T": ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."],
     "U": ["#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+    "V": ["#...#", "#...#", "#...#", "#...#", "#...#", ".#.#.", "..#.."],
+    "W": ["#...#", "#...#", "#...#", "#.#.#", "#.#.#", "##.##", "#...#"],
     "Y": ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."],
     "'": ["#", "#", "#", ".", ".", ".", "."],
     "0": [".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###."],
@@ -1148,7 +1150,281 @@ def draw_cover_lethal():
     return render(cv, pal, lights, lambda x, y: y > y_t, add=True)
 
 
+# ============================================================
+# 스타듀 밸리: 맑은 아침의 농장과 밭
+# ============================================================
+STARDEW_PAL = {
+    "sd0": "#4aa6e8", "sd1": "#74bdf0", "sd2": "#a6daf5", "sd3": "#d4eef6", "sd4": "#fde6b4",
+    "cl": "#ffffff", "cl2": "#d6e8f4", "mt": "#9db7dc", "mt2": "#7f9cc8",
+    "hl1": "#a6e070", "hl2": "#7cc456", "hl3": "#5aa83f",
+    "so0": "#7a4a26", "so1": "#9c6638", "so2": "#b47a44",
+    "pk": "#f2862e", "pk2": "#ffb060", "pk0": "#c45a18", "sp": "#5ab83c", "sp2": "#8ad85a",
+    "ap": "#e2423a", "wh": "#ffffff", "bk": "#f2a33a", "sm": "#eef4f8",
+    "t0": "#fff8e0", "t1": "#ffe7a8", "t2": "#f2c060", "t3": "#d89038", "tk": "#5a2e12", "tsh": "#3a1d0c",
+}
+
+
+def draw_cover_stardew():
+    cv = Canvas()
+    rnd = random.Random(17)
+    pal = {**PAL, **STARDEW_PAL}
+    sky(cv, ["sd0", "sd1", "sd2", "sd3", "sd4"], 0, 104, 96)
+
+    # 해와 구름
+    for y in range(30, 72):
+        for x in range(76, 118):
+            d = math.hypot(x + .5 - 98, y + .5 - 52)
+            if d <= 7:
+                cv.set(x, y, "sun")
+            elif d <= 9:
+                cv.set(x, y, "sun2")
+            elif d <= 13 and (x + y) % 2 == 0:
+                cv.set(x, y, "sd4")
+    for cx, cy, s in ((22, 60, 1.0), (66, 68, .8), (110, 76, .6)):
+        cloud = Part()
+        for dx, dy, r in ((0, 0, 6), (-7, 2, 4.5), (7, 2, 4.5), (-3, -4, 4), (4, -3, 4.5), (-12, 4, 3), (12, 4, 3)):
+            cloud.capsule((cx + dx * s, cy + dy * s), (cx + dx * s, cy + dy * s), r * s, "cl")
+        bottom = max(y for _, y in cloud.px)
+        cloud.px = {(x, y): ("cl2" if y >= bottom - 1 else c) for (x, y), c in cloud.px.items()}
+        cv.part(cloud)
+
+    # 먼 산과 언덕
+    for x in range(W):
+        h = round(80 + noise(x, 71, 5, ((0.09, 1.0), (0.23, .5))))
+        for y in range(h, H):
+            cv.set(x, y, "mt2" if (x + y) % 9 == 0 else "mt")
+        if h < 76:
+            for y in range(h, h + 2):
+                cv.set(x, y, "cl")
+    for x in range(W):
+        h1 = round(90 + noise(x, 72, 2.2, ((0.06, 1.0), (0.17, .4))))
+        h2 = round(97 + noise(x, 73, 1.6, ((0.05, 1.0), (0.19, .4))))
+        for y in range(h1, H):
+            cv.set(x, y, "hl1")
+        for y in range(h2, H):
+            cv.set(x, y, "hl2" if y > h2 else "hl1")
+
+    # 농가
+    for x, y, r in ((25, 69, 1.6), (27, 65, 2), (30, 60, 2.4), (34, 55, 2.6)):
+        disc(cv, x, y, r, "sm")
+    house_rows = [
+        ".........cc..........",
+        "....RRRRRccRRRR......",
+        "...RRRRRRccRRRRR.....",
+        "..RRRRRRRRRRRRRRR....",
+        ".RRRRRRRRRRRRRRRRR...",
+        "rrrrrrrrrrrrrrrrrrr..",
+        ".WWWWWWWWWWWWWWWWW...",
+        ".WNNNWWWWDDDWWNNNW...",
+        ".WNnNWWWWDDDWWNnNW...",
+        ".WNNNWWWWDDDWWNNNW...",
+        ".WWWWWWWWDDkWWWWWW...",
+        ".wwwwwwwwDDDwwwwww...",
+        ".WWWWWWWWDDDWWWWWW...",
+    ]
+    from pixelkit import scale2x
+    big = ["".join(r) for r in scale2x([list(r) for r in house_rows])]
+    house = sprite(big, 4, 73, {"R": "r1", "r": "r0", "c": "w0", "W": "w2", "w": "w1", "N": "win", "n": "win2",
+                                "D": "w0", "k": "au"}, light={"r1": "r2"})
+    cv.part(house)
+
+    # 사과나무
+    tree = Part()
+    tree.capsule((100.5, 104), (100.5, 88), 1.6, "w1")
+    tree.shade({"w1": "w0"})
+    crown = Part()
+    for dx, dy, r in ((0, 0, 9), (-8, 4, 6), (8, 4, 6), (-3, -6, 6), (4, -6, 6)):
+        crown.capsule((100 + dx, 82 + dy), (100 + dx, 82 + dy), r, "G1")
+    crown.shade({"G1": "G0"}).light({"G1": "G2"})
+    for p in ((95, 80), (104, 78), (108, 86), (98, 88), (91, 86), (102, 84)):
+        crown.px[p] = "ap"
+    tree.outline("K"); crown.outline("K")
+    cv.part(tree); cv.part(crown)
+
+    # 닭
+    chick = sprite([
+        "....cc.",
+        "...WWWb",
+        "W.WWWW.",
+        "WWWWWW.",
+        ".WWWW..",
+        "..y.y..",
+    ], 46, 98, {"W": "wh", "c": "ap", "b": "bk", "y": "bk"})
+    cv.part(chick)
+
+    # 밭 (원근: 소실점으로 모이는 고랑)
+    vx, vy, top, bot = 60, 92, 106, H
+    edges = list(range(-260, 400, 40))
+    for i, (b0, b1) in enumerate(zip(edges, edges[1:])):
+        t0x = vx + (b0 - vx) * (top - vy) / (bot - vy)
+        t1x = vx + (b1 - vx) * (top - vy) / (bot - vy)
+        poly(cv, [(t0x, top), (t1x, top), (b1, bot), (b0, bot)], "so1" if i % 2 else "so2")
+    for y in range(top, top + 2):
+        for x in range(W):
+            if cv.get(x, y) in ("so1", "so2"):
+                cv.set(x, y, "so0")
+    # 작물: 밝은 고랑 가운데 줄을 따라
+    for i, (b0, b1) in enumerate(zip(edges, edges[1:])):
+        if i % 2:
+            continue
+        bc = (b0 + b1) / 2
+        tc = vx + (bc - vx) * (top - vy) / (bot - vy)
+        for k, y in enumerate((112, 119, 128, 140, 156)):
+            x = round(tc + (bc - tc) * (y - top) / (bot - top))
+            s = (y - top) / (bot - top)
+            if not (2 <= x < W - 2):
+                continue
+            r = 1.3 + s * 3.2
+            if (i // 2 + k) % 3 == 0:
+                pk = Part().capsule((x - r * .5, y - r), (x + r * .5, y - r), r, "pk")
+                pk.shade({"pk": "pk0"}).light({"pk": "pk2"})
+                pk.px[x, round(y - 2 * r - .5)] = "sp"
+                pk.outline("K")
+                cv.part(pk)
+            else:
+                # 잎채소 포기: 동그란 잎 덩어리 셋
+                leaf = Part()
+                for dx in (-r * .7, 0, r * .7):
+                    leaf.capsule((x + dx, y - r * .8), (x + dx, y - r * .8), r * .62, "sp")
+                leaf.shade({"sp": "G0"}).light({"sp": "sp2"})
+                leaf.outline("K")
+                cv.part(leaf)
+
+    # 울타리 (앞 왼쪽)
+    for x in range(0, 30, 7):
+        for y in range(98, 110):
+            cv.set(x, y, "w1"); cv.set(x + 1, y, "w0")
+    for y in (101, 105):
+        for x in range(0, 30):
+            if cv.get(x, y) not in ("w1", "w0"):
+                cv.set(x, y, "w2")
+
+    title(cv, ["STARDEW", "VALLEY"], 6)
+    return render(cv, pal)
+
+
+# ============================================================
+# 할로우 나이트: 어두운 지하 성당의 큰 창과 등불을 든 방랑자
+# ============================================================
+HOLLOW_PAL = {
+    "hb0": "#2c5a80", "hb1": "#1b3c5a", "hb2": "#11283e", "hb3": "#0a1828", "hb4": "#050b14",
+    "fr": "#07101c", "fr2": "#0d1b2c", "gs0": "#1e4466", "gs1": "#2e6890", "gs2": "#4c8cb8", "gs3": "#8cc4e8",
+    "ry": "#3a6e96", "pl0": "#060d18", "pl1": "#0f1c2e", "pl2": "#1c3048",
+    "cl0": "#04080f", "cl1": "#0a1424", "eye": "#e6fbff", "lm": "#e6fbff", "lm2": "#7fdcff",
+    "sp": "#cfeaff", "mo": "#9ee8ff", "gd": "#03060c",
+    "t0": "#ffffff", "t1": "#e6f2ff", "t2": "#b8d4f0", "t3": "#8ab0d8", "tk": "#03060c", "tsh": "#000000",
+}
+
+
+def draw_cover_hollow():
+    cv = Canvas()
+    rnd = random.Random(19)
+    pal = {**PAL, **HOLLOW_PAL}
+    bands = ["hb0", "hb1", "hb2", "hb3", "hb4"]
+    for y in range(H):
+        for x in range(W):
+            cv.set(x, y, dither(math.hypot((x + .5 - 60) * .8, y + .5) / 150, bands, x, y))
+
+    # 큰 아치 창
+    cx = 60
+    for y in range(24, 118):
+        for x in range(26, 95):
+            d = math.hypot(x + .5 - cx, y + .5 - 58)
+            outer = (y >= 58 and 28 <= x <= 91) or (y < 58 and d <= 32)
+            inner = (y >= 58 and 33 <= x <= 86) or (y < 58 and d <= 27)
+            if inner:
+                t = (y - 30) / 90
+                cv.set(x, y, dither(t, ["gs3", "gs2", "gs1", "gs0"], x, y))
+            elif outer:
+                cv.set(x, y, "fr2" if x < cx else "fr")
+    # 창살 무늬
+    for y in range(30, 118):
+        for x in range(33, 87):
+            if cv.get(x, y) and cv.get(x, y)[:2] == "gs":
+                d = math.hypot(x + .5 - cx, y + .5 - 52)
+                ang = math.degrees(math.atan2(y + .5 - 52, x + .5 - cx)) % 45
+                if (abs(d - 14) < .8 or abs(d - 6) < .7 or (d < 14 and ang < 3)
+                        or x in (46, 60, 74) and y > 66 or y == 84 or (y == 66 and d > 13)):
+                    cv.set(x, y, "fr")
+    # 빛줄기
+    for y in range(66, 150):
+        half = 14 + (y - 66) * .35
+        for x in range(W):
+            if abs(x + .5 - cx) < half and (x * 2 + y) % 6 == 0 and (cv.get(x, y) or "")[:2] == "hb":
+                cv.set(x, y, "ry")
+
+    # 기둥
+    for x0, x1 in ((2, 18), (102, 118)):
+        for y in range(18, 140):
+            for x in range(x0, x1):
+                cv.set(x, y, "pl2" if x == x0 + 2 else ("pl0" if (x - x0) % 5 == 4 else "pl1"))
+        for y in range(14, 20):
+            for x in range(x0 - 2, x1 + 2):
+                cv.set(x, y, "pl2" if y == 14 else "pl1")
+    # 늘어진 뿌리
+    for rx in (30, 40, 82, 92):
+        ln = rnd.randrange(16, 30)
+        for y in range(0, ln):
+            x = rx + round(math.sin(y * .3 + rx) * 1.5)
+            cv.set(x, y, "cl0"); cv.set(x + 1, y, "cl0")
+
+    # 바닥
+    ground = [116 + round(noise(x, 81, 1.2)) for x in range(W)]
+    for x in range(W):
+        for y in range(ground[x], H):
+            cv.set(x, y, "gd")
+        if rnd.random() < .3:
+            h = rnd.randrange(2, 5)
+            for j in range(h):
+                cv.set(x, ground[x] - 1 - j, "gd")
+    for x in (20, 26, 88, 96, 108):
+        cv.set(x, ground[x] - 4, "sp"); cv.set(x, ground[x] - 3, "gd")
+    poly(cv, [(12, 117), (12, 104), (16, 101), (19, 106), (22, 100), (24, 117)], "pl0")
+
+    # 등불을 든 방랑자 (Scale2x로 2배, 밝은 창 앞에 실루엣)
+    from pixelkit import scale2x
+    w_rows = [
+        "....HHH.....",
+        "...HHHHH....",
+        "..HHFFFHH...",
+        "..HFeFeFH...",
+        "..HHFFFHH...",
+        "...CCCCC....",
+        "..CCCCCCC...",
+        "..CCCCCCCa..",
+        ".CCCCCCCC...",
+        ".CCCCCCCCC..",
+        ".CCCCCCCCC..",
+        "CCCCCCCCCCC.",
+        "CCCCCCCCCCC.",
+        ".C.C.CC.C.C.",
+    ]
+    big = ["".join(r) for r in scale2x([list(r) for r in w_rows])]
+    wanderer = sprite(big, 46, 88, {"H": "cl1", "F": "cl0", "e": "eye", "C": "cl0", "a": "cl1"},
+                      light={"cl1": "pl2"})
+    staff = Part().capsule((65, 104), (74, 82), .8, "pl2")
+    staff.capsule((75, 80), (75, 80), 2.2, "lm2")
+    staff.px[75, 80] = "lm"; staff.px[74, 80] = "lm"; staff.px[75, 79] = "lm"
+    staff.outline("K")
+    cv.part(staff); cv.part(wanderer)
+
+    # 포자와 빛 나비
+    for _ in range(36):
+        x, y = rnd.randrange(W), rnd.randrange(30, 116)
+        if (cv.get(x, y) or "")[:2] in ("hb", "gs", "ry"):
+            cv.set(x, y, "sp")
+    for mx, my in ((80, 92), (38, 80), (90, 60)):
+        for p in ((mx - 1, my), (mx + 1, my), (mx, my + 1), (mx - 2, my - 1), (mx + 2, my - 1)):
+            cv.set(*p, "mo")
+
+    title(cv, ["HOLLOW", "KNIGHT"], 124)
+    lights = [((75, 80), 24, (140, 220, 255)), ((60, 50), 40, (120, 180, 230))]
+    return render(cv, pal, lights, lambda x, y: y < 122, add=True)
+
+
 COVERS = {
+    "stardew": draw_cover_stardew,
+    "hollow": draw_cover_hollow,
     "terraria": draw_cover_terraria,
     "hades": draw_cover_hades,
     "eldenring": draw_cover_elden,
