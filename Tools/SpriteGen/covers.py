@@ -52,13 +52,36 @@ PAL = {
     "K": "#0b0910",
 }
 
+# 제목용 5x7 도트 글꼴 (2배로 찍어 10x14)
 FONT = {
-    "T": ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."],
-    "E": ["#####", "#....", "#....", "####.", "#....", "#....", "#####"],
-    "R": ["####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"],
     "A": [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
+    "B": ["####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."],
+    "C": [".###.", "#...#", "#....", "#....", "#....", "#...#", ".###."],
+    "D": ["####.", "#...#", "#...#", "#...#", "#...#", "#...#", "####."],
+    "E": ["#####", "#....", "#....", "####.", "#....", "#....", "#####"],
+    "G": [".###.", "#...#", "#....", "#.###", "#...#", "#...#", ".###."],
+    "H": ["#...#", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
     "I": ["###", ".#.", ".#.", ".#.", ".#.", ".#.", "###"],
+    "K": ["#...#", "#..#.", "#.#..", "##...", "#.#..", "#..#.", "#...#"],
+    "L": ["#....", "#....", "#....", "#....", "#....", "#....", "#####"],
+    "M": ["#...#", "##.##", "#.#.#", "#.#.#", "#...#", "#...#", "#...#"],
+    "N": ["#...#", "##..#", "#.#.#", "#..##", "#...#", "#...#", "#...#"],
+    "O": [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+    "P": ["####.", "#...#", "#...#", "####.", "#....", "#....", "#...."],
+    "R": ["####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"],
+    "S": [".####", "#....", "#....", ".###.", "....#", "....#", "####."],
+    "T": ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."],
+    "U": ["#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+    "Y": ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."],
+    "'": ["#", "#", "#", ".", ".", ".", "."],
+    "0": [".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###."],
+    "2": [".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####"],
+    "3": [".###.", "#...#", "....#", "..##.", "....#", "#...#", ".###."],
+    "7": ["#####", "....#", "...#.", "..#..", ".#...", ".#...", ".#..."],
+    " ": ["..", "..", "..", "..", "..", "..", ".."],
 }
+
+TITLE_COLS = ("t0", "t1", "t2", "t3")
 
 
 def noise(x, seed, amp=1.0, freqs=((0.11, 1.0), (0.29, 0.6), (0.53, 0.25))):
@@ -87,6 +110,108 @@ def dither(t, bands, x, y):
     f = max(0.0, min(0.9999, t)) * (len(bands) - 1)
     i = int(f)
     return bands[i + 1] if (f - i) * 16 > BAYER[y % 4][x % 4] + 0.5 else bands[i]
+
+
+def title(cv, lines, y0, cols=TITLE_COLS, ink="tk", shadow_ch="tsh", gap=4):
+    """도트 글꼴 제목. lines의 각 줄은 글자열 또는 (글자열, 색 4개). 그림자·외곽선을 두르고 마지막 줄 아래 y를 돌려준다."""
+    letters = Part()
+    y = y0
+    for line in lines:
+        text, lc = (line, cols) if isinstance(line, str) else line
+        widths = [len(FONT[c][0]) * 2 for c in text]
+        x = (W - (sum(widths) + 2 * (len(text) - 1))) // 2
+        for c, w in zip(text, widths):
+            for gy, row in enumerate(FONT[c]):
+                for gx, ch in enumerate(row):
+                    if ch == "#":
+                        for ax in range(2):
+                            for ay in range(2):
+                                yy = gy * 2 + ay
+                                col = lc[0] if yy < 2 else lc[1] if yy < 7 else lc[2] if yy < 11 else lc[3]
+                                letters.px[x + gx * 2 + ax, y + yy] = col
+            x += w + 2
+        y += 14 + gap
+    shadow = letters.moved(1, 2)
+    shadow.px = {p: shadow_ch for p in shadow.px}
+    shadow.outline(shadow_ch)
+    letters.outline(ink)
+    cv.part(shadow); cv.part(letters)
+    return y - gap + 3
+
+
+def render(cv, pal_hex, lights=(), lit=lambda x, y: True, steps=(0.0, 0.14, 0.26, 0.38), add=False):
+    """문자 캔버스 → 그림. lights: ((x, y), 반지름, (r, g, b)) 목록. 빛은 몇 단계로 끊어 디더링해 섞는다.
+    add=True면 빛 색을 더해서(어두운 곳이 회색으로 뜨지 않고 빛 색으로 물듦) 칠한다."""
+    pal = palette_rgba(pal_hex)
+    img = Image.new("RGBA", (W, H))
+    for y in range(H):
+        for x in range(W):
+            r, g, b, a = pal[cv.c[y][x]]
+            if lights and lit(x, y):
+                best, col = 0.0, None
+                for (lx, ly), rad, lc in lights:
+                    k = max(0.0, 1 - math.hypot(x + .5 - lx, y + .5 - ly) / rad)
+                    if k > best:
+                        best, col = k, lc
+                step = steps[min(len(steps) - 1, int(best * len(steps) + (BAYER[y % 4][x % 4] / 16 - .5) * .5))]
+                if col and step:
+                    if add:
+                        r, g, b = (min(255, round(v + c * step * .55)) for v, c in zip((r, g, b), col))
+                    else:
+                        r, g, b = (round(v + (c - v) * step) for v, c in zip((r, g, b), col))
+            img.putpixel((x, y), (r, g, b, a))
+    return img
+
+
+def sky(cv, bands, y0, y1, span=None):
+    """y0~y1 줄을 bands 색 띠로 디더링해 칠한다 (span: 그라데이션 길이)."""
+    span = span or (y1 - y0)
+    for y in range(y0, y1):
+        for x in range(W):
+            cv.set(x, y, dither((y - y0) / span, bands, x, y))
+
+
+def stars(cv, rnd, n, y1, cols=("st", "st2"), skip=(6, 40)):
+    for _ in range(n):
+        x, y = rnd.randrange(W), rnd.randrange(0, y1)
+        if not (skip[0] <= y <= skip[1]):
+            cv.set(x, y, cols[0] if rnd.random() < .4 else cols[1])
+
+
+def disc(cv, cx, cy, r, ch, keep=None):
+    for y in range(int(cy - r - 1), int(cy + r + 2)):
+        for x in range(int(cx - r - 1), int(cx + r + 2)):
+            if math.hypot(x + .5 - cx, y + .5 - cy) <= r and (keep is None or cv.get(x, y) in keep):
+                cv.set(x, y, ch)
+
+
+def poly(cv, pts, ch, keep=None):
+    """다각형 채우기 (픽셀 가운데가 안에 있으면 칠함)."""
+    ys = [p[1] for p in pts]
+    for y in range(int(min(ys)), int(max(ys)) + 1):
+        cy = y + .5
+        xs = []
+        for (x1, y1), (x2, y2) in zip(pts, pts[1:] + pts[:1]):
+            if (y1 <= cy < y2) or (y2 <= cy < y1):
+                xs.append(x1 + (cy - y1) * (x2 - x1) / (y2 - y1))
+        xs.sort()
+        for a, b in zip(xs[::2], xs[1::2]):
+            for x in range(math.ceil(a - .5), math.floor(b - .5) + 1):
+                if keep is None or cv.get(x, y) in keep:
+                    cv.set(x, y, ch)
+
+
+def sprite(rows, x, y, keys, shade=None, light=None, ink="K"):
+    """문자 격자 캐릭터: keys로 팔레트 이름을 바꾸고 빛·그림자·외곽선을 두른 Part."""
+    p = Part().grid(rows, x, y)
+    p.px = {q: keys.get(c, c) for q, c in p.px.items()}
+    if shade:
+        p.shade(shade)
+    if light:
+        p.light(light)
+    if ink:
+        p.outline(ink)
+    return p
 
 
 def draw_cover_terraria():
@@ -351,61 +476,697 @@ def draw_cover_terraria():
     cv.part(pick); cv.part(miner)
 
     # ---- 제목
-    title = "TERRARIA"
-    widths = [len(FONT[c][0]) * 2 for c in title]
-    total = sum(widths) + 2 * (len(title) - 1)
-    x0, y0 = (W - total) // 2, 8
-    letters = Part()
-    x = x0
-    for c, w in zip(title, widths):
-        for gy, row in enumerate(FONT[c]):
-            for gx, ch in enumerate(row):
-                if ch == "#":
-                    for ax in range(2):
-                        for ay in range(2):
-                            yy = gy * 2 + ay
-                            col = "t0" if yy < 2 else "t1" if yy < 7 else "t2" if yy < 11 else "t3"
-                            letters.px[x + gx * 2 + ax, y0 + yy] = col
-        x += w + 2
-    shadow = letters.moved(1, 2)
-    shadow.px = {p: "tsh" for p in shadow.px}
-    shadow.outline("tsh")
-    letters.outline("tk")
-    cv.part(shadow); cv.part(letters)
+    title(cv, ["TERRARIA"], 8)
 
-    # ---- 색 입히기 + 빛(횃불, 용암, 헬멧 등)
-    pal = palette_rgba(PAL)
-    img = Image.new("RGBA", (W, H))
+    # ---- 색 입히기 + 빛(횃불, 용암)
     lights = [((tx + .5, ty - 2.5), 20, (255, 150, 50)), ((94, 143), 30, (255, 90, 20))]
     lit = set(cave)
     for (x, y) in cave:
         for dx in range(-2, 3):
             for dy in range(-2, 3):
                 lit.add((x + dx, y + dy))
-    for y in range(H):
+    return render(cv, PAL, lights, lambda x, y: (x, y) in lit and y > 100)
+
+
+# ============================================================
+# 하데스: 지하 세계에서 빛나는 출구로 오르는 계단
+# ============================================================
+HADES_PAL = {
+    "h0": "#0e0306", "h1": "#22060b", "h2": "#3e0b10", "h3": "#651714", "h4": "#962c18",
+    "c0": "#2a1d24", "c1": "#4c3a40", "c2": "#76616a", "c3": "#9c8790",
+    "g0": "#a87420", "g1": "#e8b44a",
+    "dw1": "#ffb04a", "dw2": "#ffe08a", "dw3": "#fff8e0", "ray": "#b8461e",
+    "R": "#c42a2a", "r": "#7c1414", "Hh": "#3a1410", "Gl": "#f2c94a",
+    "t0": "#fff6dc", "t1": "#ffd56a", "t2": "#e8862a", "t3": "#b0381a",
+}
+
+
+def column(cv, x0, w, top, bottom, broken=False, rnd=None):
+    for y in range(top, bottom):
+        for x in range(x0, x0 + w):
+            k = (x - x0) % 3
+            cv.set(x, y, "c2" if k == 0 else ("c0" if k == 2 else "c1"))
+        cv.set(x0, y, "c3"); cv.set(x0 + w - 1, y, "c0")
+    if broken:
+        for x in range(x0, x0 + w):
+            for y in range(top - 1, top + rnd.randrange(0, 4)):
+                cv.set(x, y, None if y < top else "c0")
+    else:
+        for x in range(x0 - 2, x0 + w + 2):
+            cv.set(x, top - 3, "g1"); cv.set(x, top - 2, "c2"); cv.set(x, top - 1, "g0")
+    for x in range(x0 - 1, x0 + w + 1):
+        cv.set(x, bottom - 2, "c2"); cv.set(x, bottom - 1, "c0")
+
+
+def draw_cover_hades():
+    cv = Canvas()
+    rnd = random.Random(3)
+    pal = {**PAL, **HADES_PAL}
+    sky(cv, ["h0", "h1", "h2", "h3", "h4"], 0, H, 150)
+
+    # 출구 아치와 빛줄기
+    cx = 60
+    for y in range(64, 132):
+        half = (y - 64) * .55 + 7
         for x in range(W):
-            r, g, b, a = pal[cv.c[y][x]]
-            if (x, y) in lit and y > 100:
-                best, col = 0.0, None
-                for (lx, ly), rad, lc in lights:
-                    d = math.hypot(x + .5 - lx, y + .5 - ly)
-                    k = max(0.0, 1 - d / rad)
-                    if k > best:
-                        best, col = k, lc
-                step = (0.0, 0.14, 0.26, 0.38)[min(3, int(best * 4 + (BAYER[y % 4][x % 4] / 16 - .5) * .5))]
-                if col and step:
-                    r, g, b = (round(v + (c - v) * step) for v, c in zip((r, g, b), col))
-            img.putpixel((x, y), (r, g, b, a))
-    return img
+            if abs(x + .5 - cx) < half and (x + y) % 2 == 0 and abs(x + .5 - cx) % 9 < 3:
+                cv.set(x, y, "ray")
+    for y in range(26, 66):
+        for x in range(44, 77):
+            d = math.hypot(x + .5 - cx, y + .5 - 42)
+            inside = (y >= 42 and 49 <= x <= 70) or (y < 42 and d <= 11)
+            frame = (y >= 42 and 46 <= x <= 73) or (y < 42 and d <= 14)
+            if inside:
+                dd = math.hypot(x + .5 - cx, (y + .5 - 50) * .7)
+                cv.set(x, y, "dw3" if dd < 6 else "dw2" if dd < 10 else "dw1")
+            elif frame:
+                cv.set(x, y, "g1" if (y < 42 and d <= 12) or x in (48, 71) else "c1")
+
+    # 기둥 (뒤 → 앞)
+    column(cv, 24, 6, 58, 128, broken=True, rnd=rnd)
+    column(cv, 90, 6, 62, 128)
+    column(cv, 4, 9, 44, 130)
+    column(cv, 107, 9, 44, 130, broken=True, rnd=rnd)
+    for x in range(W):
+        for y in range(H):
+            if cv.get(x, y) is None:
+                cv.set(x, y, dither(y / 150, ["h0", "h1", "h2", "h3", "h4"], x, y))
+
+    # 계단
+    for i in range(16):
+        y = 64 + i * 4
+        hw = 8 + i * 1.9
+        for x in range(round(cx - hw), round(cx + hw)):
+            cv.set(x, y, "c3"); cv.set(x, y + 1, "c2")
+            cv.set(x, y + 2, "c1"); cv.set(x, y + 3, "c0" if (x + i) % 7 else "c1")
+        cv.set(round(cx - hw) - 1, y + 1, "c0"); cv.set(round(cx + hw), y + 1, "c0")
+    for y in range(128, 134):
+        for x in range(8, 112):
+            cv.set(x, y, "c2" if y == 128 else ("c0" if y == 133 else "c1"))
+
+    # 불의 강
+    for x in range(W):
+        wave = 135 + round(math.sin(x * .31) * 1.2)
+        for y in range(134, H):
+            if y < wave:
+                continue
+            if y == wave:
+                ch = "L3"
+            elif y == wave + 1:
+                ch = "L2"
+            else:
+                n = math.sin(x * .25 + y * .6) + math.sin(x * .11 - y * .3)
+                ch = "L0" if n < -1.1 else ("L2" if n > 1.2 else "L1")
+            cv.set(x, y, ch)
+    # 불티
+    for _ in range(60):
+        x, y = rnd.randrange(W), rnd.randrange(36, 134)
+        if (cv.get(x, y) or "")[:1] in ("h", "r"):
+            cv.set(x, y, "L3" if rnd.random() < .3 else "L2")
+
+    # 계단을 오르는 전사 (뒷모습)
+    hero = sprite([
+        "..G.G.G....",
+        "..GHHHG....",
+        "..HHHHH....",
+        "..HHHHH....",
+        "...SSS.....",
+        ".RRRRRRR...",
+        "SRRRRRRRS..",
+        "SRRRRRRRS..",
+        "sRRRRRRRs..",
+        ".RRRRRRR...",
+        ".RRRRRRRR..",
+        ".RRRRRRRR..",
+        "..ss.ss....",
+        "..ss.ss....",
+        "..OO.OO....",
+    ], 54, 82, {"G": "Gl", "H": "Hh", "R": "R"}, shade={"R": "r"})
+    blade = Part().capsule((62.5, 90.5), (66.5, 98.5), .5, "dw2")
+    blade.outline("K")
+    cv.part(blade); cv.part(hero)
+
+    y_t = title(cv, ["HADES"], 8)
+    lights = [((60, 46), 54, (255, 214, 150)), ((24, 150), 36, (255, 90, 30)), ((96, 150), 36, (255, 90, 30))]
+    return render(cv, pal, lights, lambda x, y: y > y_t, add=True)
+
+
+# ============================================================
+# 엘든 링: 빛의 고리를 두른 황금 나무와 절벽 위 기사
+# ============================================================
+ELDEN_PAL = {
+    "e0": "#0c0a1e", "e1": "#1f183a", "e2": "#3a2a52", "e3": "#64425e", "e4": "#a26c58", "e5": "#d8a462",
+    "gl0": "#a8681a", "gl1": "#e2a838", "gl2": "#ffd97a", "gl3": "#fff6d0",
+    "tr0": "#6e4212", "tr1": "#c48a2e",
+    "m0": "#3c2a50", "m1": "#241a36", "m2": "#150f22",
+    "k1": "#0c0814", "k2": "#2a2034",
+    "ar0": "#2a2a36", "ar1": "#4e5064", "ar2": "#7a7e94", "cp": "#4a1e22", "cp2": "#2c1014",
+    "t0": "#fff6d8", "t1": "#f2d48a", "t2": "#d9a845", "t3": "#a8742a",
+}
+
+
+def draw_cover_elden():
+    cv = Canvas()
+    rnd = random.Random(5)
+    pal = {**PAL, **ELDEN_PAL}
+    sky(cv, ["e0", "e1", "e2", "e3", "e4", "e5"], 0, 112)
+    stars(cv, rnd, 30, 50, skip=(4, 40))
+
+    # 빛의 고리
+    cx, cy, rr = 60, 70, 25
+    for y in range(cy - rr - 4, cy + rr + 4):
+        for x in range(cx - rr - 4, cx + rr + 4):
+            d = math.hypot(x + .5 - cx, y + .5 - cy)
+            if abs(d - rr) < .8:
+                cv.set(x, y, "gl2")
+            elif abs(d - rr) < 2.2 and BAYER[y % 4][x % 4] < 5:
+                cv.set(x, y, "gl1")
+
+    # 산과 성
+    for x in range(W):
+        h0 = round(86 + noise(x, 51, 4, ((0.08, 1.0), (0.21, .5))))
+        h1 = round(98 + noise(x, 52, 3, ((0.06, 1.0), (0.25, .4))))
+        for y in range(h0, H):
+            cv.set(x, y, "m0")
+        for y in range(h1, H):
+            cv.set(x, y, "m1")
+    castle = sprite([
+        "..#.......#....",
+        ".###..#..###...",
+        ".###.###.###...",
+        ".###.###.###.#.",
+        "#############.#",
+        "###############",
+        "###w###w####w##",
+        "###############",
+    ], 92, 84, {"#": "m2", "w": "dw2"}, ink=None)
+    pal.setdefault("dw2", "#ffd08a")
+    cv.part(castle)
+
+    # 황금 나무
+    tree = Part()
+    tree.capsule((60, 101), (60, 86), 3.2, "tr1")
+    tree.capsule((60, 86), (60, 72), 2.2, "tr1")
+    for a, b, r in (((60, 80), (44, 70), 1.3), ((60, 80), (76, 70), 1.3), ((60, 74), (51, 62), 1.1),
+                    ((60, 74), (69, 62), 1.1), ((60, 72), (60, 58), 1.0),
+                    ((58, 99), (49, 103), 1.2), ((62, 99), (71, 103), 1.2)):
+        tree.capsule(a, b, r, "tr1")
+    tree.shade({"tr1": "tr0"}).light({"tr1": "gl1"})
+    cv.part(tree)
+    crown = Part()
+    clumps = ((60, 58, 9), (47, 63, 7), (73, 63, 7), (37, 69, 5), (83, 69, 5), (52, 52, 7),
+              (68, 52, 7), (60, 46, 6), (42, 70, 4), (78, 70, 4))
+    for x, y, r in clumps:
+        crown.capsule((x, y), (x, y), r, "gl1")
+    # 잎 덩어리 결: 덩어리마다 아래쪽은 어둡게, 위쪽은 밝게
+    for (x, y) in list(crown.px):
+        cx_, cy_, r_ = min(clumps, key=lambda c: math.hypot(x + .5 - c[0], y + .5 - c[1]) - c[2])
+        rel = (y + .5 - cy_) / r_
+        n = math.sin(x * .9 + y * .4) + math.sin(y * 1.1 - x * .3)
+        if rel > .45 or n < -1.3:
+            crown.px[x, y] = "gl0"
+        elif rel < -.45 and (x - cx_) < r_ * .3:
+            crown.px[x, y] = "gl2"
+    crown.light({"gl1": "gl2"})
+    for _ in range(22):
+        p = rnd.choice(list(crown.px))
+        crown.px[p] = "gl3"
+    cv.part(crown)
+    # 가지 사이로 보이는 틈
+    for x, y in ((55, 66), (65, 66), (44, 74), (76, 74)):
+        cv.set(x, y, "tr0")
+    # 떨어지는 잎
+    for _ in range(26):
+        x, y = rnd.randrange(10, 110), rnd.randrange(62, 130)
+        if (cv.get(x, y) or "")[:1] in ("e", "m"):
+            cv.set(x, y, "gl2" if rnd.random() < .5 else "gl1")
+    # 앞 절벽
+    poly(cv, [(0, 120), (34, 121), (52, 126), (64, 133), (70, 160), (0, 160)], "k1")
+    poly(cv, [(70, 160), (78, 146), (120, 141), (120, 160)], "k1")
+    for x in range(0, 66):
+        for y in range(118, 140):
+            if cv.get(x, y) == "k1" and cv.get(x, y - 1) not in ("k1", "k2"):
+                cv.set(x, y, "k2")
+                break
+
+    # 기사 (뒷모습, 나무를 바라봄)
+    sword = Part().capsule((25.5, 103.5), (36.5, 118.5), .6, "ar2")
+    sword.capsule((25, 106), (28, 104), .5, "ar0")
+    sword.outline("K")
+    knight = sprite([
+        "....HHH......",
+        "...HHHHH.....",
+        "...HHHHH.....",
+        "....HHH......",
+        "..AAAAAAA....",
+        ".AAAAAAAAA...",
+        ".ACCCCCCCA...",
+        "..CCCCCCC....",
+        "..CCCCCCCC...",
+        "..CCCCCCCCC..",
+        "..CCCCCCCCCC.",
+        "...CCCCCCCCCC",
+        "...LL..LL.C.C",
+        "...LL..LL....",
+        "..BBB..BBB...",
+    ], 24, 106, {"H": "ar1", "A": "ar1", "C": "cp", "L": "ar0", "B": "K"}, shade={"ar1": "ar0", "cp": "cp2"},
+        light={"ar1": "ar2"})
+    cv.part(sword); cv.part(knight)
+
+    y_t = title(cv, ["ELDEN", "RING"], 6)
+    lights = [((60, 62), 44, (255, 200, 110))]
+    return render(cv, pal, lights, lambda x, y: y > y_t, add=True)
+
+
+# ============================================================
+# 발더스 게이트 3: 달 앞을 나는 용, 성문 앞의 세 모험가
+# ============================================================
+BG3_PAL = {
+    "b0": "#060918", "b1": "#10183a", "b2": "#232658", "b3": "#45285c", "b4": "#86283a", "b5": "#d0502a",
+    "mo": "#ece6d2", "mo2": "#bfb8a4",
+    "dk": "#07040c", "dk2": "#1e1226", "ey": "#ff3a2a",
+    "sw0": "#2e3246", "sw1": "#4a4f68", "sw2": "#6e7490", "sw3": "#9aa0b8",
+    "rf0": "#3a1a2a", "rf1": "#6a2a3a", "bn": "#a8202a", "bn2": "#d8463e",
+    "gt": "#160c10", "cb0": "#22202c", "cb1": "#3c3a4c", "cb2": "#5a586c",
+    "f0": "#ff7a1a", "f1": "#ffd23f", "f2": "#fff5c0",
+    "ft": "#7a7e94", "ft2": "#b8bcd0", "sh": "#7a3a1a", "mg": "#5a2a8a", "mg2": "#8a4ac0",
+    "rg": "#2a5a3a", "rg2": "#3e7a50", "orb": "#7ff4ff", "orb2": "#e8ffff", "ar0": "#2a2a36",
+    "t0": "#fff1d0", "t1": "#f0c060", "t2": "#c8782a", "t3": "#8a3a1a",
+}
+
+
+def brick(cv, x0, y0, x1, y1, base, mortar, hi=None):
+    for y in range(y0, y1):
+        for x in range(x0, x1):
+            row = (y - y0) // 4
+            if (y - y0) % 4 == 3 or (x + (row % 2) * 4) % 8 == 0:
+                cv.set(x, y, mortar)
+            else:
+                cv.set(x, y, hi if hi and (y - y0) % 4 == 0 else base)
+
+
+def draw_cover_bg3():
+    cv = Canvas()
+    rnd = random.Random(9)
+    pal = {**PAL, **BG3_PAL}
+    sky(cv, ["b0", "b1", "b2", "b3", "b4", "b5"], 0, 104)
+    stars(cv, rnd, 40, 60, skip=(4, 42))
+    disc(cv, 40, 58, 13, "mo")
+    for x, y, r in ((36, 54, 3), (45, 62, 2), (40, 66, 1.5), (44, 51, 1.5)):
+        disc(cv, x, y, r, "mo2")
+
+    # 용 (달 앞을 지나감)
+    for wing in ([(64, 57), (59, 30), (64, 34), (68, 25), (73, 32), (78, 21), (80, 34), (82, 58)],
+                 [(80, 59), (89, 31), (94, 36), (100, 29), (103, 37), (108, 33), (106, 50), (90, 63)]):
+        poly(cv, wing, "dk2")
+    dragon = Part()
+    for a, b, r in (((64, 56), (86, 61), 3.4), ((64, 56), (54, 48), 2.2), ((54, 48), (47, 49), 2.3),
+                    ((47, 50), (43, 52), 1.2), ((86, 61), (98, 67), 2.2), ((98, 67), (108, 65), 1.4),
+                    ((108, 65), (114, 60), .9), ((72, 54), (60, 30), .8), ((72, 54), (68, 26), .7),
+                    ((72, 54), (78, 22), .8), ((84, 58), (90, 32), .8), ((84, 58), (100, 30), .7),
+                    ((84, 58), (108, 34), .8), ((70, 62), (68, 68), 1), ((82, 64), (82, 70), 1)):
+        dragon.capsule(a, b, r, "dk")
+    cv.part(dragon)
+    cv.set(48, 47, "ey"); cv.set(49, 47, "ey")
+
+    # 뒤쪽 도시와 불타는 지평선
+    for x in range(0, W, 7):
+        h = 78 + rnd.randrange(0, 18)
+        w = rnd.randrange(5, 9)
+        for y in range(h, 100):
+            for xx in range(x, x + w):
+                cv.set(xx, y, "rf0")
+        poly(cv, [(x - 1, h), (x + w / 2, h - 7), (x + w + 1, h)], "rf0")
+        if rnd.random() < .7:
+            cv.set(x + 2, h + 4, "f1")
+
+    # 성벽과 성문
+    brick(cv, 0, 98, W, 142, "sw1", "sw0", "sw2")
+    for x in range(0, W, 8):
+        for y in range(93, 98):
+            for xx in range(x, x + 4):
+                cv.set(xx, y, "sw1" if y > 93 else "sw2")
+    for tx in (24, 76):
+        brick(cv, tx, 74, tx + 20, 142, "sw2", "sw0", "sw3")
+        for x in range(tx - 1, tx + 21, 5):
+            for y in range(69, 74):
+                for xx in range(x, x + 3):
+                    cv.set(xx, y, "sw2")
+        poly(cv, [(tx - 2, 70), (tx + 10, 50), (tx + 22, 70)], "rf1")
+        poly(cv, [(tx + 10, 50), (tx + 22, 70), (tx + 10, 70)], "rf0")
+        for y in range(78, 98):
+            for x in range(tx + 6, tx + 14):
+                if not (y > 94 and x in (tx + 9, tx + 10)):
+                    cv.set(x, y, "bn2" if x == tx + 6 else "bn")
+        cv.set(tx + 9, 85, "f1"); cv.set(tx + 10, 85, "f1"); cv.set(tx + 9, 86, "f1"); cv.set(tx + 10, 86, "f1")
+    # 아치 문
+    gx = 60
+    for y in range(96, 142):
+        for x in range(44, 77):
+            d = math.hypot(x + .5 - gx, y + .5 - 112)
+            inside = (y >= 112 and 47 <= x <= 72) or (y < 112 and d <= 13)
+            ring = (y >= 112 and 45 <= x <= 74) or (y < 112 and d <= 15.5)
+            if inside:
+                glow = (y - 100) / 42
+                cv.set(x, y, "b5" if glow > .6 and (x + y) % 2 else ("b4" if glow > .3 else "gt"))
+                if (x - 47) % 5 == 0 or (y - 100) % 6 == 0:
+                    cv.set(x, y, "dk")
+            elif ring:
+                cv.set(x, y, "sw3" if y < 112 and (round(math.atan2(y - 112, x - gx) * 6)) % 2 else "sw2")
+    # 횃불
+    for tx in (42, 78):
+        for p, ch in (((tx, 110), "w0"), ((tx, 109), "w1"), ((tx, 108), "f0"), ((tx, 107), "f1"),
+                      ((tx, 106), "f2"), ((tx - 1, 107), "f0"), ((tx + 1, 107), "f0"), ((tx, 105), "f1")):
+            cv.set(*p, ch)
+
+    # 길
+    for y in range(142, H):
+        for x in range(W):
+            row = (y - 142) // 3
+            mortar = (y - 142) % 3 == 2 or (x + row * 3) % (6 + row) == 0
+            cv.set(x, y, "cb0" if mortar else ("cb2" if (y - 142) % 3 == 0 else "cb1"))
+
+    # 세 모험가 (뒷모습)
+    fighter = sprite([
+        "...hhh....",
+        "..hhhhh...",
+        "..hhhhh...",
+        ".AAAAAAA..",
+        "AsSSSSsAA.",
+        "AsSOSSsAA.",
+        "AsSSSSsA..",
+        ".sSSSSs...",
+        ".AAAAAA...",
+        ".LL..LL...",
+        ".LL..LL...",
+        "BBB..BBB..",
+    ], 34, 144, {"h": "ft", "A": "ft", "S": "sh", "s": "w0", "O": "f1", "L": "ar0", "B": "K"},
+        light={"ft": "ft2"})
+    mage = sprite([
+        "....H.....",
+        "...HH.....",
+        "...HHH....",
+        "..HHHHH...",
+        "HHHHHHHHH.",
+        "..MMMMM...",
+        ".MMMMMMM..",
+        ".MMMMMMM..",
+        "MMMMMMMMM.",
+        "MMMMMMMMM.",
+        "MMMMMMMMM.",
+        "..B...B...",
+    ], 55, 144, {"H": "mg", "M": "mg"}, light={"mg": "mg2"})
+    staff = Part().capsule((65.5, 140), (65.5, 156), .5, "w1")
+    staff.capsule((65.5, 139), (65.5, 139), 1.4, "orb")
+    staff.px[65, 139] = "orb2"
+    staff.outline("K")
+    rogue = sprite([
+        "...RRR....",
+        "..RRRRR...",
+        "..RRRRR...",
+        ".RRRRRRR..",
+        "RRRRRRRRR.",
+        "RRRRRRRRR.",
+        ".RRRRRRR..",
+        ".rRRRRRr..",
+        "..PPPPP...",
+        "..PP.PP...",
+        "..PP.PP...",
+        ".BBB.BBB..",
+    ], 76, 144, {"R": "rg", "r": "ax", "P": "ar0", "B": "K"}, light={"rg": "rg2"})
+    for p in (fighter, staff, mage, rogue):
+        cv.part(p)
+
+    y_t = title(cv, ["BALDUR'S", "GATE 3"], 6)
+    lights = [((42, 106), 13, (255, 150, 50)), ((78, 106), 13, (255, 150, 50)), ((60, 134), 22, (255, 90, 30)),
+              ((65.5, 139), 10, (110, 230, 255))]
+    return render(cv, pal, lights, lambda x, y: y > 60, add=True)
+
+
+# ============================================================
+# 사이버펑크 2077: 비 내리는 네온 도시를 내려다보는 옥상
+# ============================================================
+CYBER_PAL = {
+    "c0": "#05030f", "c1": "#110a28", "c2": "#2a0e45", "c3": "#4e1258", "c4": "#82206a",
+    "k0": "#07050d", "k1": "#110c1f", "k2": "#1d1636", "k3": "#2c2350",
+    "np": "#ff2bd6", "np2": "#ffb0f2", "nc": "#2ee6ff", "nc2": "#c8fbff", "ny": "#fcee0a", "ny2": "#fffbb0",
+    "wc": "#2a8cb0", "wp": "#a03a9a", "wy": "#c8a040", "rn": "#5a5a94", "red": "#ff2a3a",
+    "jk": "#16141c", "jk2": "#2c2a36", "hr": "#2a1830", "S": "#e8b090", "s": "#b07a5a",
+    "pn": "#2a2a44", "pn2": "#3c3c5c",
+    "t0": "#fffde0", "t1": "#fcee0a", "t2": "#e0c400", "t3": "#a88a00", "tk": "#14001c", "tsh": "#ff2bd6",
+}
+
+
+def draw_cover_cyber():
+    cv = Canvas()
+    rnd = random.Random(11)
+    pal = {**PAL, **CYBER_PAL}
+    sky(cv, ["c0", "c1", "c2", "c3", "c4"], 0, 120)
+
+    def tower(x0, w, top, base, ch, win, density):
+        for y in range(top, base):
+            for x in range(x0, x0 + w):
+                cv.set(x, y, ch)
+                if (x - x0) % 3 == 1 and (y - top) % 4 == 2 and rnd.random() < density:
+                    cv.set(x, y, win)
+
+    # 먼 빌딩 → 가까운 빌딩
+    x = 0
+    while x < W:
+        w = rnd.randrange(6, 12)
+        tower(x, w, rnd.randrange(52, 86), 132, "k2", rnd.choice(("wc", "wp")), .35)
+        x += w
+    tower(48, 18, 30, 132, "k1", "wc", .5)
+    for y in range(22, 30):
+        cv.set(56, y, "k1")
+    cv.set(56, 21, "red")
+    for y in range(34, 130, 2):
+        cv.set(49, y, "nc"); cv.set(64, y, "np")
+    for x0, w, top in ((0, 14, 70), (14, 12, 84), (30, 14, 92), (70, 16, 78), (88, 12, 96), (102, 18, 74)):
+        tower(x0, w, top, 132, "k1", rnd.choice(("wc", "wp", "wy")), .55)
+
+    # 네온 간판
+    for y in range(78, 112):
+        for x in range(4, 11):
+            edge = x in (4, 10) or y in (78, 111)
+            cv.set(x, y, "np" if edge else ("np2" if (y - 80) % 6 < 3 and 6 <= x <= 8 else "k0"))
+    for y in range(86, 93):
+        for x in range(72, 98):
+            edge = x in (72, 97) or y in (86, 92)
+            cv.set(x, y, "nc" if edge else ("nc2" if y == 89 and (x - 74) % 4 < 2 else "k0"))
+    for y in range(100, 106):
+        for x in range(32, 46):
+            edge = x in (32, 45) or y in (100, 105)
+            cv.set(x, y, "ny" if edge else ("ny2" if y in (102, 103) and x % 3 else "k0"))
+    # 하늘을 나는 차
+    for p, ch in (((88, 50), "k3"), ((89, 50), "k3"), ((90, 50), "k3"), ((91, 50), "k3"), ((92, 50), "k3"),
+                  ((89, 49), "k3"), ((90, 49), "k3"), ((91, 49), "k3"), ((93, 50), "ny2"), ((87, 50), "red")):
+        cv.set(*p, ch)
+    # 옥상
+    for y in range(132, H):
+        for x in range(W):
+            seam = (y - 132) in (7, 17) or (x + (y > 139) * 9) % 18 == 0
+            cv.set(x, y, "k1" if seam else "k0")
+    for x in range(W):
+        cv.set(x, 128, "pn2"); cv.set(x, 132, "pn")
+    for x in range(0, W, 8):
+        for y in range(128, 133):
+            cv.set(x, y, "pn2")
+    # 젖은 바닥에 비친 네온 (가로 줄무늬)
+    for x0, w, ch in ((2, 12, "np"), (30, 16, "ny"), (68, 26, "nc")):
+        for i, y in enumerate(range(136, 158, 3)):
+            off = (i * 3) % 5
+            for x in range(x0 + off, x0 + w - off):
+                if (x + i) % 3:
+                    cv.set(x, y, ch)
+
+    # 주인공 (뒷모습, 도시를 내려다봄) — Scale2x로 2배
+    from pixelkit import scale2x
+    rows = [
+
+        "....hhhh......",
+        "...hhhhhh.....",
+        "...hhhhhh.....",
+        "...hhhhhh.....",
+        "....SSSS......",
+        "..YJJJJJJY....",
+        ".YJJJJJJJJY...",
+        "JJJJJJJJJJJc..",
+        "JJJJJJJJJJJc..",
+        "JJJYYYYJJJJc..",
+        "JJ.JJJJJJ.Jc..",
+        "JJ.JJJJJJ.cc..",
+        "SS.JJJJJJ.cc..",
+        "...JJJJJJ.....",
+        "...PPPPPP.....",
+        "...PPP.PPP....",
+        "...PPP.PPP....",
+        "...PPP.PPP....",
+        "...PP...PP....",
+        "..BBB...BBB...",
+    ]
+    big = ["".join(r) for r in scale2x([list(r) for r in rows])]
+    hero = sprite(big, 78, 117, {"h": "hr", "J": "jk", "Y": "ny", "c": "nc", "P": "pn2", "B": "K"},
+                  light={"jk": "jk2"})
+    cv.part(hero)
+
+    # 비
+    for _ in range(140):
+        x, y = rnd.randrange(W), rnd.randrange(44, H)
+        for i in range(3):
+            if cv.get(x + i // 2, y + i) not in (None,):
+                cv.set(x + i // 2, y + i, "rn")
+
+    y_t = title(cv, ["CYBERPUNK", ("2077", ("nc2", "nc", "#0aa8c8", "#06708a"))], 6)
+    pal.update({"#0aa8c8": "#0aa8c8", "#06708a": "#06708a"})
+    return render(cv, pal)
+
+
+# ============================================================
+# 리썰 컴퍼니: 버려진 행성, 착륙선, 손전등을 든 직원과 어둠 속 눈
+# ============================================================
+LETHAL_PAL = {
+    "l0": "#04070a", "l1": "#0a1216", "l2": "#121f26", "l3": "#1e3036", "l4": "#2c4248",
+    "cn0": "#22282c", "cn1": "#3a4248", "cn2": "#566068", "hz": "#e8b020",
+    "d0": "#160f0c", "d1": "#2e1e16", "d2": "#4a3020", "d3": "#6a4628",
+    "sh0": "#2e3338", "sh1": "#5a6068", "sh2": "#8e969e", "wm": "#ffd890", "wm2": "#fff2cc",
+    "o0": "#963c0c", "o1": "#e06a18", "o2": "#ff9c4a", "vs": "#18262c", "vs2": "#7ad8e8",
+    "bm": "#f6eab0", "ey": "#ff2a2a", "mn": "#0a0a0c", "mo": "#d8e2dc",
+    "red": "#ff3020", "grn": "#3aff6a", "dk": "#ffd23a",
+    "t0": "#ffe8e0", "t1": "#ff6a50", "t2": "#d8281a", "t3": "#8a1010", "tk": "#14040a",
+}
+
+
+def draw_cover_lethal():
+    cv = Canvas()
+    rnd = random.Random(13)
+    pal = {**PAL, **LETHAL_PAL}
+    sky(cv, ["l0", "l1", "l2", "l3", "l4"], 0, H, 112)
+    stars(cv, rnd, 26, 70, skip=(4, 42))
+    disc(cv, 100, 52, 8, "mo")
+    disc(cv, 103, 50, 7.5, "l1", keep=("mo",))
+
+    # 시설
+    for y in range(60, 114):
+        for x in range(58, 120):
+            cv.set(x, y, "cn2" if y == 60 else ("cn0" if (x - 58) % 12 == 0 or (y - 60) % 14 == 0 else "cn1"))
+    for x in range(52, 58):
+        for y in range(70, 114):
+            cv.set(x, y, "cn0" if x in (52, 57) else "sh1")
+    for y in range(76, 80):
+        for x in range(76, 102):
+            cv.set(x, y, "hz" if ((x + y) // 3) % 2 else "K")
+    for y in range(80, 114):
+        for x in range(78, 100):
+            cv.set(x, y, "K")
+    monster = Part()
+    monster.capsule((89, 88), (89, 113), 2.4, "mn")
+    monster.capsule((89, 86), (89, 86), 3, "mn")
+    monster.capsule((86, 94), (82, 110), .8, "mn")
+    monster.capsule((92, 94), (96, 110), .8, "mn")
+    cv.part(monster)
+    cv.set(87, 86, "ey"); cv.set(91, 86, "ey")
+    for p in ((88, 56), (89, 56), (88, 57), (89, 57)):
+        cv.set(*p, "red")
+    for y in (58, 59):
+        cv.set(88, y, "cn0"); cv.set(89, y, "cn0")
+
+    # 땅
+    ground = [112 + round(noise(x, 61, 1.5)) for x in range(W)]
+    for x in range(W):
+        for y in range(ground[x], H):
+            r = rnd.random()
+            cv.set(x, y, "d2" if y == ground[x] else ("d0" if r < .14 else ("d3" if r < .2 else "d1")))
+    for _ in range(14):
+        rx, ry = rnd.randrange(W), rnd.randrange(120, H)
+        disc(cv, rx, ry, rnd.uniform(1, 2.4), "d2")
+        cv.set(rx - 1, ry - 1, "d3")
+    # 착륙선
+    ship = Part()
+    ship.grid([
+        "....SSSSSSSSSSSSSSSSSSSSSSSSS.....",
+        "..SSSSSSSSSSSSSSSSSSSSSSSSSSSSS...",
+        ".SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS.",
+        "SSmSSmSSmSSmSSmSSmSSmSSmSSSSSSSSS.",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSWWWWWS.",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSWWWWWS.",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSWWWWWS.",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSWWWWWS.",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSWWWWWS.",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSWWWWWS.",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSWWWWWS.",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSWWWWWS.",
+        "sssssssssssssssssssssssssssWWWWWs.",
+        ".ss........ss........ss.....s.ss..",
+        ".ss........ss........ss.......ss..",
+    ], 2, 92)
+    ship.px = {p: {"S": "sh1", "s": "sh0", "m": "sh2", "W": "wm"}[c] for p, c in ship.px.items()}
+    ship.light({"sh1": "sh2"})
+    ship.outline("K")
+    cv.part(ship)
+    cv.set(4, 95, "red"); cv.set(32, 95, "grn")
+    poly(cv, [(29, 106), (34, 106), (44, 115), (36, 115)], "sh0")
+    for y in range(98, 106):
+        cv.set(31, y, "wm2")
+
+    # 손전등 빛
+    poly(cv, [(56, 132), (104, 116), (108, 146)], "bm", keep=("d0", "d1", "d2", "d3", "l4"))
+    for y in range(110, 150):
+        for x in range(56, 110):
+            if cv.get(x, y) == "bm" and BAYER[y % 4][x % 4] > 9 - (x - 56) * .12:
+                cv.set(x, y, "d2")
+    # 주운 고철 (고무 오리, 깡통)
+    for p, ch in (((76, 136), "dk"), ((77, 136), "dk"), ((77, 135), "dk"), ((78, 135), "o1"), ((75, 136), "dk"),
+                  ((76, 137), "dk"), ((77, 137), "dk"), ((90, 140), "red"), ((90, 139), "red"), ((90, 141), "cn2")):
+        cv.set(*p, ch)
+
+    # 직원 (주황 우주복)
+    worker = sprite([
+        "...HHHHH....",
+        "..HHHHHHH...",
+        "..HVVVVHH...",
+        "..HVvVVHH...",
+        "..HHHHHHH...",
+        ".OOOOOOOOO..",
+        "POOOOOOOOOO.",
+        "POOOOOOOOOGG",
+        "POOOOOOOOOG.",
+        "POOOOOOOO...",
+        ".OOOOOOOO...",
+        ".OOO..OOO...",
+        ".OOO..OOO...",
+        ".OOO..OOO...",
+        ".BBB..BBB...",
+        "BBBB..BBBB..",
+    ], 44, 120, {"H": "o1", "O": "o1", "V": "vs", "v": "vs2", "P": "sh0", "G": "sh2", "B": "sh0"},
+        shade={"o1": "o0"}, light={"o1": "o2"})
+    cv.part(worker)
+
+    y_t = title(cv, ["LETHAL", "COMPANY"], 6)
+    lights = [((33, 106), 22, (255, 190, 110)), ((88, 56), 12, (255, 50, 30)), ((89, 86), 7, (255, 40, 40))]
+    return render(cv, pal, lights, lambda x, y: y > y_t, add=True)
+
+
+COVERS = {
+    "terraria": draw_cover_terraria,
+    "hades": draw_cover_hades,
+    "eldenring": draw_cover_elden,
+    "bg3": draw_cover_bg3,
+    "cyberpunk": draw_cover_cyber,
+    "lethal": draw_cover_lethal,
+}
 
 
 def main():
+    import sys
     OUT_RAW.mkdir(parents=True, exist_ok=True)
-    img = draw_cover_terraria()
-    img.save(OUT_RAW / "cover_terraria.png")
-    big = img.resize((W * SCALE, H * SCALE), Image.NEAREST)
-    big.save(OUT_SITE / "cover-terraria.png")
-    print("saved", OUT_RAW / "cover_terraria.png", OUT_SITE / "cover-terraria.png")
+    names = sys.argv[1:] or list(COVERS)
+    for name in names:
+        img = COVERS[name]()
+        img.save(OUT_RAW / f"cover_{name}.png")
+        img.resize((W * SCALE, H * SCALE), Image.NEAREST).save(OUT_SITE / f"cover-{name}.png")
+        print("saved", f"cover-{name}.png")
 
 
 if __name__ == "__main__":
