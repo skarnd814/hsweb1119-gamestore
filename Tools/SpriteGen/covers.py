@@ -92,15 +92,16 @@ def noise(x, seed, amp=1.0, freqs=((0.11, 1.0), (0.29, 0.6), (0.53, 0.25))):
 
 
 class Canvas:
-    def __init__(self):
-        self.c = [[None] * W for _ in range(H)]
+    def __init__(self, w=W, h=H):
+        self.w, self.h = w, h
+        self.c = [[None] * w for _ in range(h)]
 
     def set(self, x, y, ch):
-        if 0 <= x < W and 0 <= y < H:
+        if 0 <= x < self.w and 0 <= y < self.h:
             self.c[y][x] = ch
 
     def get(self, x, y):
-        return self.c[y][x] if 0 <= x < W and 0 <= y < H else None
+        return self.c[y][x] if 0 <= x < self.w and 0 <= y < self.h else None
 
     def part(self, part):
         for (x, y), ch in part.px.items():
@@ -121,7 +122,7 @@ def title(cv, lines, y0, cols=TITLE_COLS, ink="tk", shadow_ch="tsh", gap=4):
     for line in lines:
         text, lc = (line, cols) if isinstance(line, str) else line
         widths = [len(FONT[c][0]) * 2 for c in text]
-        x = (W - (sum(widths) + 2 * (len(text) - 1))) // 2
+        x = (cv.w - (sum(widths) + 2 * (len(text) - 1))) // 2
         for c, w in zip(text, widths):
             for gy, row in enumerate(FONT[c]):
                 for gx, ch in enumerate(row):
@@ -145,9 +146,9 @@ def render(cv, pal_hex, lights=(), lit=lambda x, y: True, steps=(0.0, 0.14, 0.26
     """문자 캔버스 → 그림. lights: ((x, y), 반지름, (r, g, b)) 목록. 빛은 몇 단계로 끊어 디더링해 섞는다.
     add=True면 빛 색을 더해서(어두운 곳이 회색으로 뜨지 않고 빛 색으로 물듦) 칠한다."""
     pal = palette_rgba(pal_hex)
-    img = Image.new("RGBA", (W, H))
-    for y in range(H):
-        for x in range(W):
+    img = Image.new("RGBA", (cv.w, cv.h))
+    for y in range(cv.h):
+        for x in range(cv.w):
             r, g, b, a = pal[cv.c[y][x]]
             if lights and lit(x, y):
                 best, col = 0.0, None
@@ -169,13 +170,13 @@ def sky(cv, bands, y0, y1, span=None):
     """y0~y1 줄을 bands 색 띠로 디더링해 칠한다 (span: 그라데이션 길이)."""
     span = span or (y1 - y0)
     for y in range(y0, y1):
-        for x in range(W):
+        for x in range(cv.w):
             cv.set(x, y, dither((y - y0) / span, bands, x, y))
 
 
 def stars(cv, rnd, n, y1, cols=("st", "st2"), skip=(6, 40)):
     for _ in range(n):
-        x, y = rnd.randrange(W), rnd.randrange(0, y1)
+        x, y = rnd.randrange(cv.w), rnd.randrange(0, y1)
         if not (skip[0] <= y <= skip[1]):
             cv.set(x, y, cols[0] if rnd.random() < .4 else cols[1])
 
