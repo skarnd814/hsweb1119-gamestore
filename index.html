@@ -290,13 +290,11 @@ section.block{padding:90px 0 0}
   display:inline-block;margin-right:6px;padding:1px 7px;border-radius:6px;font-weight:900;font-size:13px;color:#fff;vertical-align:3px;
   background:linear-gradient(135deg,var(--primary),var(--primary-2));
 }
-.card-media .rank{
-  position:absolute;bottom:10px;left:12px;font-family:var(--font-display);font-size:13px;
-  padding:2px 10px;border-radius:8px;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);
-}
+.card .rank{font-family:var(--font-display);font-size:13px;font-weight:400;color:var(--accent);margin-right:6px;vertical-align:1px}
+.body-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .wish{
-  position:absolute;bottom:10px;right:10px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;
-  background:rgba(0,0,0,.45);backdrop-filter:blur(6px);font-size:17px;transition:.2s;
+  flex-shrink:0;width:32px;height:32px;margin:-4px -4px 0 0;border-radius:50%;display:grid;place-items:center;
+  background:var(--surface-2);border:1px solid var(--line);font-size:16px;transition:.2s;
 }
 .wish:hover{transform:scale(1.1)}
 .wish.on{color:#ff5c8a}
@@ -1031,10 +1029,10 @@ const TIERS = [
 // cover 가 없으면 "일러스트 준비 중" 임시 표지로 보여 줌
 const GAMES = [
   { id:'stardew', title:'Stardew Valley', ko:'스타듀 밸리', dev:'ConcernedApe', cats:['indie','coop','rpg'], tags:['농장 시뮬','인디','협동'],
-    price:16000, sale:30, rating:98, review:'압도적으로 긍정적', size:'0.5 GB', cover:'img/cover-stardew.svg', emoji:'🌾', c1:'#3f8a30', c2:'#f2b84b',
+    price:16000, sale:30, rating:98, review:'압도적으로 긍정적', size:'0.5 GB', cover:'img/cover-stardew.png', emoji:'🌾', c1:'#3f8a30', c2:'#f2b84b',
     desc:'할아버지가 남긴 낡은 농장을 물려받아 새로운 삶을 시작하세요. 작물을 기르고 동물을 돌보고, 마을 사람들과 우정을 쌓고, 광산을 탐험하며 나만의 하루를 만들어 가는 힐링 농장 RPG입니다.' },
   { id:'hollow', title:'Hollow Knight', ko:'할로우 나이트', dev:'Team Cherry', cats:['action','indie'], tags:['메트로배니아','액션','인디'],
-    price:16500, sale:50, rating:97, review:'압도적으로 긍정적', size:'9 GB', cover:'img/cover-hollow.svg', emoji:'🗡️', c1:'#0b1b2d', c2:'#3f7aa8',
+    price:16500, sale:50, rating:97, review:'압도적으로 긍정적', size:'9 GB', cover:'img/cover-hollow.png', emoji:'🗡️', c1:'#0b1b2d', c2:'#3f7aa8',
     desc:'무너진 지하 왕국을 탐험하는 2D 액션 어드벤처. 손으로 그린 아름다운 세계, 도전적인 전투, 숨겨진 길로 가득한 거대한 지도가 당신을 기다립니다.' },
   { id:'eldenring', title:'ELDEN RING', ko:'엘든 링', dev:'FromSoftware', cats:['action','rpg'], tags:['오픈월드','액션 RPG','고난도'],
     price:64800, sale:0, rating:93, review:'매우 긍정적', size:'60 GB', cover:'img/cover-eldenring.png', emoji:'🌳', c1:'#2c2050', c2:'#d39a5c',
@@ -1186,12 +1184,13 @@ function renderGrid(){
     <article class="card" style="animation-delay:${i * 50}ms">
       <div class="card-media" data-action="detail" data-id="${g.id}">
         ${coverHTML(g)}
-        <span class="rank">#${g.rank}</span>
-        <button class="wish${wish.has(g.id) ? ' on' : ''}" data-action="wish" data-id="${g.id}" aria-label="찜하기">${wish.has(g.id) ? '♥' : '♡'}</button>
       </div>
       <div class="card-body">
-        <div class="tags">${g.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
-        <h3 data-action="detail" data-id="${g.id}">${g.title}</h3>
+        <div class="body-top">
+          <div class="tags">${g.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+          <button class="wish${wish.has(g.id) ? ' on' : ''}" data-action="wish" data-id="${g.id}" aria-label="찜하기">${wish.has(g.id) ? '♥' : '♡'}</button>
+        </div>
+        <h3 data-action="detail" data-id="${g.id}"><span class="rank">#${g.rank}</span>${g.title}</h3>
         <p class="sub">${g.ko} · ${g.dev}</p>
         <p class="rating">👍 ${g.rating}% ${g.review}</p>
         <div class="price-row">${priceHTML(g)}<span class="earn">+${fmt(earnOf(finalPrice(g)))}P</span></div>
