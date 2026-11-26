@@ -1009,16 +1009,10 @@ section.block{padding:90px 0 0}
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<!-- Supabase 와 대화하는 도구 (CDN) -->
+<!-- 불러오는 순서: supabase-js(CDN) → db.js(연결 값과 db) → 이 페이지 스크립트 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
 <script>
-/* ============================================================
-   Supabase 연결 — 공개해도 되는 값 두 가지만 넣는다
-   (Project URL + Publishable key. Secret key·DB 비밀번호는 절대 넣지 않는다)
-   ============================================================ */
-const SUPABASE_URL = 'https://bistmkyoyfpmrkiukajx.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_DRyjP29aR1KdAMg-ogiTEg_HLRnBrr-';
-const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 // 로그인 상태: session(로그인 정보) · profile(shop_profiles 한 줄) · orders(내 주문 합계)
 const me = { session: null, profile: null, spent: 0, orders: 0 };
