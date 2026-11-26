@@ -116,6 +116,11 @@ ul{margin:0;padding:0;list-style:none}
 .nav a{padding:8px 14px;border-radius:999px;font-weight:500;font-size:15px;color:var(--muted);transition:.2s}
 .nav a:hover,.nav a.active{color:var(--text);background:rgba(255,255,255,.07)}
 .header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+/* 로그인 상태에 따라 보이기 (body.logged-in) */
+body:not(.logged-in) .user-only{display:none !important}
+body.logged-in .guest-only{display:none !important}
+.my-tier .guest{grid-column:1/-1;text-align:center;padding:10px 0}
+.my-tier .guest p{margin:6px 0 16px}
 .point-chip{
   display:flex;align-items:center;gap:8px;height:40px;padding:0 14px 0 6px;border-radius:999px;
   background:var(--surface);border:1px solid var(--line);font-size:13.5px;font-weight:700;
@@ -661,11 +666,12 @@ section.block{padding:90px 0 0}
     </nav>
 
     <div class="header-right">
-      <a href="#membership" class="point-chip" title="데모 회원의 포인트입니다">
-        <span class="tier-dot">🥈</span><span>실버 · <em id="headerPoints">3,500P</em></span>
+      <a href="#membership" class="point-chip user-only" title="내 등급과 보유 포인트">
+        <span class="tier-dot" id="chipTier">🥉</span><span id="chipText">브론즈 · <em>0P</em></span>
       </a>
-      <button class="btn btn-ghost btn-sm auth-btn" data-action="auth" data-tab="login">로그인</button>
-      <button class="btn btn-primary btn-sm auth-btn" data-action="auth" data-tab="signup">회원가입</button>
+      <button class="btn btn-ghost btn-sm auth-btn guest-only" data-action="auth" data-tab="login">로그인</button>
+      <button class="btn btn-primary btn-sm auth-btn guest-only" data-action="auth" data-tab="signup">회원가입</button>
+      <button class="btn btn-ghost btn-sm auth-btn user-only" data-action="logout">로그아웃</button>
       <button class="icon-btn" data-action="cart-open" aria-label="장바구니 열기">🛒<span class="badge" id="cartBadge">0</span></button>
       <button class="icon-btn menu-btn" id="menuBtn" aria-label="메뉴 열기" aria-expanded="false">☰</button>
 
@@ -693,9 +699,12 @@ section.block{padding:90px 0 0}
   <a href="#membership">멤버십</a>
   <a href="#points">포인트</a>
   <a href="#faq">고객센터</a>
-  <div class="row">
+  <div class="row guest-only">
     <button class="btn btn-ghost" data-action="auth" data-tab="login">로그인</button>
     <button class="btn btn-primary" data-action="auth" data-tab="signup">회원가입</button>
+  </div>
+  <div class="row user-only">
+    <button class="btn btn-ghost" data-action="logout">로그아웃</button>
   </div>
 </nav>
 
@@ -856,20 +865,7 @@ section.block{padding:90px 0 0}
     </div>
     <div class="tiers" id="tiers"></div>
 
-    <div class="my-tier">
-      <div>
-        <h3>🥈 데모 회원님은 <span class="grad-text">실버</span> 등급이에요</h3>
-        <p>누적 구매 <b id="spentTxt">88,000원</b> · 골드까지 <b id="remainTxt">62,000원</b> 남았어요.</p>
-        <div class="progress" aria-label="다음 등급 진행률"><span id="tierBar"></span></div>
-        <div class="progress-labels"><span>🥈 실버 50,000원</span><span>🥇 골드 150,000원</span></div>
-      </div>
-      <div class="my-stats">
-        <div class="stat"><small>보유 포인트</small><b><em>3,500</em>P</b></div>
-        <div class="stat"><small>현재 적립률</small><b><em>3</em>%</b></div>
-        <div class="stat"><small>이번 달 적립</small><b>1,240P</b></div>
-        <div class="stat"><small>소멸 예정</small><b>0P</b></div>
-      </div>
-    </div>
+    <div class="my-tier" id="myTier"></div>
   </div>
 </section>
 
@@ -929,7 +925,7 @@ section.block{padding:90px 0 0}
       <div><h4>고객센터</h4><ul><li><a href="#faq">자주 묻는 질문</a></li><li><a href="#" data-action="demo">1:1 문의</a></li><li><a href="#" data-action="demo">이용약관</a></li></ul></div>
     </div>
     <div class="footer-bottom">
-      <p class="demo-notice">⚠ 이 사이트는 수업 실습용 데모입니다. 실제 회원가입·결제·포인트 지급·다운로드는 이루어지지 않습니다.</p>
+      <p class="demo-notice">⚠ 이 사이트는 수업 실습용입니다. 회원가입과 주문은 데이터베이스(Supabase)에 저장되지만, 실제 결제·포인트 지급·게임 다운로드는 이루어지지 않습니다.</p>
       <p>게임 이름과 가격은 예시이며, 각 게임의 권리는 해당 개발사와 퍼블리셔에 있습니다. 게임 이미지는 GameStore가 직접 그린 일러스트입니다.</p>
       <p>© 2026 GameStore. All rights reserved.</p>
     </div>
@@ -949,9 +945,9 @@ section.block{padding:90px 0 0}
       <button data-auth-tab="signup" role="tab">회원가입</button>
     </div>
 
-    <form id="loginForm" data-demo="login" novalidate>
-      <div class="field"><label for="li-email">이메일</label><input class="input" id="li-email" type="email" placeholder="example@email.com" autocomplete="off"></div>
-      <div class="field"><label for="li-pw">비밀번호</label><input class="input" id="li-pw" type="password" placeholder="비밀번호 입력" autocomplete="off"></div>
+    <form id="loginForm" novalidate>
+      <div class="field"><label for="li-email">이메일</label><input class="input" id="li-email" type="email" placeholder="example@email.com" autocomplete="email"></div>
+      <div class="field"><label for="li-pw">비밀번호</label><input class="input" id="li-pw" type="password" placeholder="비밀번호 입력" autocomplete="current-password"></div>
       <div class="form-foot">
         <label class="check"><input type="checkbox"> 로그인 유지</label>
         <button type="button" class="link-btn" data-action="demo">비밀번호 찾기</button>
@@ -965,12 +961,13 @@ section.block{padding:90px 0 0}
       </div>
     </form>
 
-    <form id="signupForm" data-demo="signup" novalidate hidden>
+    <form id="signupForm" novalidate hidden>
       <div class="bonus-box"><span style="font-size:26px">🎁</span><span>지금 가입하면 <b>1,000P</b>를 바로 드려요.<br>브론즈 등급 · 구매 금액의 1% 적립으로 시작!</span></div>
-      <div class="field"><label for="su-name">닉네임</label><input class="input" id="su-name" type="text" placeholder="2~12자" autocomplete="off"></div>
-      <div class="field"><label for="su-email">이메일</label><input class="input" id="su-email" type="email" placeholder="example@email.com" autocomplete="off"></div>
-      <div class="field"><label for="su-pw">비밀번호</label><input class="input" id="su-pw" type="password" placeholder="영문·숫자 포함 8자 이상" autocomplete="off"></div>
-      <div class="field"><label for="su-pw2">비밀번호 확인</label><input class="input" id="su-pw2" type="password" placeholder="한 번 더 입력" autocomplete="off"></div>
+      <div class="field"><label for="su-name">이름</label><input class="input" id="su-name" type="text" placeholder="2~12자" autocomplete="name"></div>
+      <div class="field"><label for="su-phone">연락처</label><input class="input" id="su-phone" type="tel" placeholder="010-0000-0000" autocomplete="tel"></div>
+      <div class="field"><label for="su-email">이메일</label><input class="input" id="su-email" type="email" placeholder="example@email.com" autocomplete="email"></div>
+      <div class="field"><label for="su-pw">비밀번호</label><input class="input" id="su-pw" type="password" placeholder="6자 이상" autocomplete="new-password"></div>
+      <div class="field"><label for="su-pw2">비밀번호 확인</label><input class="input" id="su-pw2" type="password" placeholder="한 번 더 입력" autocomplete="new-password"></div>
       <div class="agree-box">
         <label class="check all"><input type="checkbox" id="agreeAll"> 전체 동의</label>
         <label class="check"><input type="checkbox" class="agree-one"> [필수] 이용약관 동의</label>
@@ -979,7 +976,7 @@ section.block{padding:90px 0 0}
       </div>
       <button class="btn btn-primary btn-block" type="submit">가입하고 1,000P 받기</button>
     </form>
-    <p class="demo-note">⚠ 실습용 데모 — 실제 로그인·회원가입은 진행되지 않아요.</p>
+    <p class="demo-note">⚠ 실습용 사이트예요 · 다른 사이트에서 쓰는 비밀번호는 쓰지 마세요.</p>
   </div>
 </div>
 
@@ -1012,11 +1009,23 @@ section.block{padding:90px 0 0}
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
+<!-- Supabase 와 대화하는 도구 (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
+/* ============================================================
+   Supabase 연결 — 공개해도 되는 값 두 가지만 넣는다
+   (Project URL + Publishable key. Secret key·DB 비밀번호는 절대 넣지 않는다)
+   ============================================================ */
+const SUPABASE_URL = 'https://bistmkyoyfpmrkiukajx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_DRyjP29aR1KdAMg-ogiTEg_HLRnBrr-';
+const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+// 로그인 상태: session(로그인 정보) · profile(shop_profiles 한 줄) · orders(내 주문 합계)
+const me = { session: null, profile: null, spent: 0, orders: 0 };
+
 /* ============================================================
    데이터
    ============================================================ */
-const DEMO_USER = { tier: 'silver', points: 3500, spent: 88000 };
 
 const TIERS = [
   { key:'bronze',  name:'브론즈', icon:'🥉', min:0,      rate:1,  perk:'가입 축하 1,000P' },
@@ -1026,6 +1035,8 @@ const TIERS = [
   { key:'legend',  name:'레전드', icon:'👑', min:600000, rate:10, perk:'전용 배지 · 한정 굿즈' },
 ];
 
+// 게임 목록: 처음엔 아래 값으로 그리고, shop_products 를 읽으면 가격·할인율·이름·표지를 DB 값으로 바꾼다.
+// (태그·평가·설명처럼 DB 에 없는 정보는 여기 값을 이름(title)으로 짝지어 쓴다)
 // cover 가 없으면 "일러스트 준비 중" 임시 표지로 보여 줌
 const GAMES = [
   { id:'stardew', title:'Stardew Valley', ko:'스타듀 밸리', dev:'ConcernedApe', cats:['indie','coop','rpg'], tags:['농장 시뮬','인디','협동'],
@@ -1063,8 +1074,11 @@ const fmt = n => n.toLocaleString('ko-KR');
 const won = n => fmt(n) + '원';
 const byId = id => GAMES.find(g => g.id === id);
 const finalPrice = g => Math.round(g.price * (100 - g.sale) / 100 / 100) * 100;
-const myTier = () => TIERS.find(t => t.key === DEMO_USER.tier);
+// DB 등급(BRONZE…LEGEND) → 화면 등급. 로그인 전에는 브론즈 기준으로 적립 예정액을 보여 준다
+const myTier = () => TIERS.find(t => t.key === (me.profile ? me.profile.grade.toLowerCase() : 'bronze')) || TIERS[0];
+const myPoints = () => (me.profile ? me.profile.points : 0);
 const earnOf = amount => Math.floor(amount * myTier().rate / 100);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const store = {
   get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
   set(k, v){ try { localStorage.setItem(k, v); } catch(e){} },
@@ -1211,28 +1225,76 @@ function setCat(cat){
   $$('.tab').forEach(b => { const on = b.dataset.cat === cat; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
   renderGrid();
 }
+// shop_products 에서 판매 중인 게임을 읽어 GAMES 를 DB 값으로 바꾼다.
+// 읽지 못하면 위에 적어 둔 기본 목록으로 그대로 보여 준다 (결제는 DB 상품 번호가 있어야 저장된다)
+async function loadProducts(){
+  if (!db) return;
+  const { data, error } = await db.from('shop_products')
+    .select('id, name, name_ko, developer, category, price, sale, image_url')
+    .order('id');
+  if (error){ toast('상품 목록을 불러오지 못했어요: ' + esc(error.message), '⚠️'); return; }
+  const local = new Map(GAMES.map(g => [g.title, g]));
+  const list = data.map(row => {
+    const base = local.get(row.name) || {
+      id: 'p' + row.id, cats: [], tags: [row.category], rating: 0, review: '새 게임', size: '-',
+      emoji: '🎮', c1: '#1c2130', c2: '#7c3aed', desc: '',
+    };
+    return { ...base, dbId: row.id, title: row.name, ko: row.name_ko || base.ko || '', dev: row.developer || base.dev || '',
+             price: row.price, sale: row.sale, cover: row.image_url || base.cover || null };
+  });
+  GAMES.splice(0, GAMES.length, ...list);
+  renderGrid();
+}
+
 $('#search').addEventListener('input', e => { state.q = e.target.value.trim(); renderGrid(); });
 $('#sort').addEventListener('change', e => { state.sort = e.target.value; renderGrid(); });
 
 /* ============================================================
    멤버십
    ============================================================ */
-$('#tiers').innerHTML = TIERS.map(t => `
-  <div class="tier t-${t.key}${t.key === DEMO_USER.tier ? ' current' : ''}">
-    <div class="ico">${t.icon}</div>
-    <h3>${t.name}</h3>
-    <p class="cond">${t.min ? `누적 ${fmt(t.min / 10000)}만 원 이상` : '가입 즉시'}</p>
-    <div class="rate">${t.rate}<small>%</small></div>
-    <p class="rate-label">구매 금액 적립</p>
-    <p class="perk-txt">${t.perk}</p>
-  </div>`).join('');
-(function(){
-  const i = TIERS.findIndex(t => t.key === DEMO_USER.tier);
-  const now = TIERS[i], next = TIERS[i + 1];
-  const pct = (DEMO_USER.spent - now.min) / (next.min - now.min) * 100;
-  const bar = $('#tierBar');
-  new IntersectionObserver((en, ob) => { if (en[0].isIntersecting){ bar.style.width = pct + '%'; ob.disconnect(); } }, { threshold: .4 }).observe(bar);
-})();
+function renderTiers(){
+  const cur = me.profile ? myTier().key : null;
+  $('#tiers').innerHTML = TIERS.map(t => `
+    <div class="tier t-${t.key}${t.key === cur ? ' current' : ''}">
+      <div class="ico">${t.icon}</div>
+      <h3>${t.name}</h3>
+      <p class="cond">${t.min ? `누적 ${fmt(t.min / 10000)}만 원 이상` : '가입 즉시'}</p>
+      <div class="rate">${t.rate}<small>%</small></div>
+      <p class="rate-label">구매 금액 적립</p>
+      <p class="perk-txt">${t.perk}</p>
+    </div>`).join('');
+}
+
+// 내 등급 카드: 로그인 전에는 안내, 로그인 후에는 shop_profiles · shop_orders 값
+function renderMyTier(){
+  const box = $('#myTier');
+  if (!me.profile){
+    box.innerHTML = `<div class="guest">
+      <h3>로그인하면 내 등급과 포인트를 볼 수 있어요</h3>
+      <p>지금 가입하면 브론즈 등급과 1,000P로 시작해요.</p>
+      <button class="btn btn-primary" data-action="auth" data-tab="signup">회원가입하고 1,000P 받기</button>
+    </div>`;
+    return;
+  }
+  const t = myTier(), i = TIERS.indexOf(t), next = TIERS[i + 1];
+  const pct = next ? Math.max(0, Math.min(100, (me.spent - t.min) / (next.min - t.min) * 100)) : 100;
+  box.innerHTML = `
+    <div>
+      <h3>${t.icon} ${esc(me.profile.name || '회원')}님은 <span class="grad-text">${t.name}</span> 등급이에요</h3>
+      <p>누적 구매 <b>${won(me.spent)}</b> · ${next ? `${next.name}까지 <b>${won(Math.max(0, next.min - me.spent))}</b> 남았어요.` : '최고 등급이에요!'}</p>
+      <div class="progress" aria-label="다음 등급 진행률"><span id="tierBar"></span></div>
+      <div class="progress-labels"><span>${t.icon} ${t.name} ${won(t.min)}</span><span>${next ? `${next.icon} ${next.name} ${won(next.min)}` : '👑 최고 등급'}</span></div>
+    </div>
+    <div class="my-stats">
+      <div class="stat"><small>보유 포인트</small><b><em>${fmt(myPoints())}</em>P</b></div>
+      <div class="stat"><small>현재 적립률</small><b><em>${t.rate}</em>%</b></div>
+      <div class="stat"><small>내 주문</small><b>${fmt(me.orders)}건</b></div>
+      <div class="stat"><small>누적 구매</small><b>${won(me.spent)}</b></div>
+    </div>`;
+  requestAnimationFrame(() => { const bar = $('#tierBar'); if (bar) bar.style.width = pct + '%'; });
+}
+renderTiers();
+renderMyTier();
 
 /* ============================================================
    주말 특가 카운트다운 (일요일 자정까지)
@@ -1294,10 +1356,111 @@ function setAuthTab(tab){
 $$('[data-auth-tab]').forEach(b => b.addEventListener('click', () => setAuthTab(b.dataset.authTab)));
 $('#agreeAll').addEventListener('change', e => $$('.agree-one').forEach(c => c.checked = e.target.checked));
 $$('.agree-one').forEach(c => c.addEventListener('change', () => $('#agreeAll').checked = $$('.agree-one').every(x => x.checked)));
-$$('form[data-demo]').forEach(f => f.addEventListener('submit', e => {
+/* ---- Supabase Auth: 회원가입 · 로그인 · 로그아웃 ---- */
+const AUTH_ERRORS = [
+  [/already registered|already been registered/i, '이미 가입한 이메일이에요. 로그인해 주세요.'],
+  [/Invalid login credentials/i, '이메일 또는 비밀번호가 맞지 않아요.'],
+  [/Email not confirmed/i, '이메일 확인이 켜져 있어요. Supabase 에서 Confirm email 을 꺼 주세요.'],
+  [/rate limit/i, '잠시 뒤에 다시 시도해 주세요. (요청이 너무 많아요)'],
+  [/at least 6 characters|Password should be/i, '비밀번호는 6자 이상이어야 해요.'],
+  [/valid email|invalid format/i, '이메일 주소 형식을 확인해 주세요.'],
+  [/Invalid API key/i, '연결 키가 맞지 않아요. Publishable key 를 확인해 주세요.'],
+];
+const authMsg = err => esc((AUTH_ERRORS.find(([re]) => re.test(err.message)) || [, err.message])[1]);
+const isEmail = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+let afterLogin = null;   // 로그인 전에 누른 결제를 로그인 뒤 이어서 연다
+
+async function withBusy(btn, fn){
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '잠시만요…';
+  try { await fn(); } finally { btn.disabled = false; btn.textContent = label; }
+}
+
+$('#loginForm').addEventListener('submit', e => {
   e.preventDefault();
-  demoToast(f.dataset.demo === 'login' ? '로그인' : '회원가입');
-}));
+  if (!db) return toast('Supabase 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.', '⚠️');
+  const email = $('#li-email').value.trim(), password = $('#li-pw').value;
+  if (!isEmail(email) || !password) return toast('이메일과 비밀번호를 입력해 주세요.', '✉️');
+  withBusy(e.submitter || $('#loginForm [type=submit]'), async () => {
+    const { error } = await db.auth.signInWithPassword({ email, password });
+    if (error) return toast(authMsg(error), '⚠️');
+    closeModal($('#authModal'));
+    $('#li-pw').value = '';
+    toast('로그인했어요. 반가워요!', '👋');
+  });
+});
+
+$('#signupForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if (!db) return toast('Supabase 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.', '⚠️');
+  const name = $('#su-name').value.trim(), phone = $('#su-phone').value.trim();
+  const email = $('#su-email').value.trim(), password = $('#su-pw').value, password2 = $('#su-pw2').value;
+  const [terms, privacy] = $$('.agree-one');
+  if (name.length < 2) return toast('이름을 2자 이상 입력해 주세요.', '✏️');
+  if (!isEmail(email)) return toast('이메일 주소를 확인해 주세요.', '✉️');
+  if (password.length < 6) return toast('비밀번호는 6자 이상이어야 해요.', '🔒');
+  if (password !== password2) return toast('비밀번호 확인이 달라요.', '🔒');
+  if (!terms.checked || !privacy.checked) return toast('필수 약관에 동의해 주세요.', '☑️');
+  withBusy(e.submitter || $('#signupForm [type=submit]'), async () => {
+    // 이름 · 연락처는 metadata 로 보내면, SQL 의 가입 트리거가 shop_profiles 에 함께 저장한다
+    const { data, error } = await db.auth.signUp({ email, password, options: { data: { name, phone } } });
+    if (error) return toast(authMsg(error), '⚠️');
+    if (!data.session){
+      toast('가입 확인 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인해 주세요.', '📧');
+      setAuthTab('login');
+      $('#li-email').value = email;
+      return;
+    }
+    closeModal($('#authModal'));
+    $('#signupForm').reset();
+    toast(`${esc(name)}님, 가입을 환영해요! 1,000P를 드렸어요.`, '🎁');
+  });
+});
+
+async function logout(){
+  if (!db) return;
+  await db.auth.signOut();
+  toast('로그아웃했어요.', '👋');
+}
+
+// 로그인한 회원의 shop_profiles 한 줄과 주문 합계를 읽어 화면에 반영
+async function loadMe(){
+  if (!me.session){
+    me.profile = null; me.spent = 0; me.orders = 0;
+  } else {
+    const uid = me.session.user.id;
+    const [{ data: profile, error: pe }, { data: orders, error: oe }] = await Promise.all([
+      db.from('shop_profiles').select('*').eq('id', uid).single(),
+      db.from('shop_orders').select('total, status').eq('user_id', uid),
+    ]);
+    if (pe) toast('회원 정보를 읽지 못했어요: ' + esc(pe.message), '⚠️');
+    if (oe) toast('주문 정보를 읽지 못했어요: ' + esc(oe.message), '⚠️');
+    me.profile = profile || null;
+    const valid = (orders || []).filter(o => o.status !== '취소');
+    me.orders = valid.length;
+    me.spent = valid.reduce((s, o) => s + o.total, 0);
+  }
+  updateUserUI();
+}
+
+function updateUserUI(){
+  document.body.classList.toggle('logged-in', !!me.profile);
+  if (me.profile){
+    const t = myTier();
+    $('#chipTier').textContent = t.icon;
+    $('#chipText').innerHTML = `${t.name} · <em>${fmt(myPoints())}P</em>`;
+  }
+  renderTiers(); renderMyTier(); renderGrid(); renderCart();
+  if (me.profile && afterLogin){ const go = afterLogin; afterLogin = null; go(); }
+}
+
+if (db){
+  // 로그인 · 로그아웃 · 새로 고침 때마다 불린다. (콜백 안에서 바로 DB 를 부르면 멈출 수 있어 setTimeout 으로 넘긴다)
+  db.auth.onAuthStateChange((event, session) => {
+    me.session = session;
+    setTimeout(loadMe, 0);
+  });
+}
 
 /* 게임 상세 */
 function openDetail(id){
@@ -1371,12 +1534,19 @@ function toggleCart(open){
 renderCart();
 
 /* ============================================================
-   결제 (실습용 — 실제 결제 없음)
+   결제 (실습용 — 돈은 나가지 않고 주문만 shop_orders · shop_order_items 에 저장)
    ============================================================ */
 let payItems = [], fromCart = false, dlTimers = [];
 function openPay(ids, viaCart = false){
-  payItems = ids; fromCart = viaCart;
   if ($('#detailModal').classList.contains('open')) closeModal($('#detailModal'));
+  if (!me.profile){
+    // 주문은 로그인한 회원만 저장할 수 있다 (보안 규칙). 로그인하면 이어서 결제 창을 연다
+    afterLogin = () => openPay(ids, viaCart);
+    toast('결제하려면 먼저 로그인해 주세요.', '🔐');
+    openAuth('login');
+    return;
+  }
+  payItems = ids; fromCart = viaCart;
   renderPayForm();
   openModal('payModal');
 }
@@ -1391,7 +1561,7 @@ function renderPayForm(){
         <div class="name"><b>${g.title}</b><small>${g.ko}</small></div><span class="p">${won(finalPrice(g))}</span></li>`; }).join('')}
     </ul>
 
-    <div class="pay-label">포인트 사용 <small>보유 ${fmt(DEMO_USER.points)}P · 1,000P부터 사용</small></div>
+    <div class="pay-label">포인트 사용 <small>보유 ${fmt(myPoints())}P · 1,000P부터 사용</small></div>
     <div class="pt-row">
       <input class="input" id="usePt" type="number" min="0" step="100" value="0" inputmode="numeric" aria-label="사용할 포인트">
       <button class="btn btn-ghost" data-action="use-all">전액 사용</button>
@@ -1415,12 +1585,12 @@ function renderPayForm(){
     </div>
     <label class="check"><input type="checkbox" id="payAgree"> 주문 내용을 확인했으며 결제에 동의합니다</label>
     <button class="btn btn-primary btn-block" id="payBtn" data-action="pay" style="margin-top:8px">⚡ ${won(sum)} 결제하기</button>
-    <p class="demo-note">⚠ 실습용 데모 — 실제 결제는 이루어지지 않아요.</p>`;
+    <p class="demo-note">⚠ 실습용 결제예요 · 돈은 나가지 않고 주문만 저장돼요.</p>`;
   $('#usePt').addEventListener('input', updatePay);
 }
 function payCalc(){
   const sum = payItems.reduce((s, id) => s + finalPrice(byId(id)), 0);
-  const max = Math.min(DEMO_USER.points, sum);
+  const max = Math.min(myPoints(), sum);
   let use = Math.floor((+$('#usePt').value || 0) / 100) * 100;
   let msg = '', warn = false;
   if (use > max){ use = Math.floor(max / 100) * 100; msg = `최대 ${fmt(use)}P까지 사용할 수 있어요.`; warn = true; }
@@ -1436,20 +1606,37 @@ function updatePay(){
   $('#sumEarn').textContent = `+${fmt(earnOf(c.total))}P`;
   $('#payBtn').textContent = `⚡ ${won(c.total)} 결제하기`;
 }
-function doPay(){
+async function doPay(){
   if (!$('#payAgree').checked){ toast('결제 동의에 체크해 주세요', '☑️'); $('#payAgree').focus(); return; }
   const c = payCalc();
+  const items = payItems.map(id => byId(id));
+  if (items.some(g => !g.dbId)){ toast('상품 정보를 아직 DB 에서 읽지 못했어요. 새로 고침 뒤 다시 해 주세요.', '⚠️'); return; }
   $('#payBody').innerHTML = `<div class="processing"><div class="spinner"></div><h3>결제 진행 중…</h3><p class="lead">잠시만 기다려 주세요</p></div>`;
-  setTimeout(() => renderDone(c), 1400);
+
+  // 1) 주문 한 건 (user_id 는 DB 가 로그인한 사람으로 채운다)
+  const { data: order, error: oe } = await db.from('shop_orders').insert({ total: c.total }).select('id').single();
+  if (oe) return payFailed(oe);
+  // 2) 주문에 담긴 게임들
+  const { error: ie } = await db.from('shop_order_items').insert(
+    items.map(g => ({ order_id: order.id, product_id: g.dbId, qty: 1, unit_price: finalPrice(g) }))
+  );
+  if (ie) return payFailed(ie);
+  renderDone(c, order.id);
+  loadMe();   // 누적 구매 · 주문 수 새로 읽기
 }
-function renderDone(c){
+function payFailed(err){
+  $('#payBody').innerHTML = `<div class="done"><div class="done-ico" style="background:#b91c1c">!</div>
+    <h3>주문을 저장하지 못했어요</h3><p class="lead">${esc(err.message)}</p>
+    <button class="btn btn-ghost" data-action="close">닫기</button></div>`;
+}
+function renderDone(c, orderId){
   const earned = earnOf(c.total);
   $('#payBody').innerHTML = `
     <div class="done">
       <div class="done-ico">✓</div>
       <h3>결제 완료! 바로 플레이하세요</h3>
-      <p class="lead" style="margin-bottom:10px">${won(c.total)} 결제${c.use ? ` · ${fmt(c.use)}P 사용` : ''}</p>
-      <span class="chip earned">💎 +${fmt(earned)}P 적립 (${myTier().name} ${myTier().rate}%)</span>
+      <p class="lead" style="margin-bottom:10px">주문번호 #${orderId} · ${won(c.total)} 결제${c.use ? ` · ${fmt(c.use)}P 사용` : ''}</p>
+      <span class="chip earned">💎 적립 예정 +${fmt(earned)}P (${myTier().name} ${myTier().rate}%)</span>
       <div class="dl-list">${payItems.map(id => { const g = byId(id); return `
         <div class="dl-item" data-dl="${id}">
           <div class="dl-top">
@@ -1460,7 +1647,7 @@ function renderDone(c){
           <div class="dl-bar"><span></span></div>
         </div>`; }).join('')}
       </div>
-      <p class="demo-note">⚠ 실습용 데모 — 실제 결제·다운로드는 이루어지지 않아요.</p>
+      <p class="demo-note">⚠ 주문은 저장됐어요 · 다운로드·플레이는 실습용 화면이에요.</p>
     </div>`;
   if (fromCart){ cart.length = 0; renderCart(); }
   // 결제 즉시 다운로드 시작 (가짜 진행률)
@@ -1510,7 +1697,8 @@ document.addEventListener('click', e => {
     case 'hero-prev':    goSlide(cur - 1); break;
     case 'hero-next':    goSlide(cur + 1); break;
     case 'show-sale':    e.preventDefault(); setCat('sale'); $('#store').scrollIntoView(); break;
-    case 'use-all':      $('#usePt').value = Math.min(DEMO_USER.points, payCalc().sum); updatePay(); break;
+    case 'use-all':      $('#usePt').value = Math.min(myPoints(), payCalc().sum); updatePay(); break;
+    case 'logout':       closeMobileNav(); logout(); break;
     case 'pay':          doPay(); break;
     case 'play':         toast('실습용 데모예요 · 실제 게임은 실행되지 않아요', '🎮'); break;
     case 'demo':         e.preventDefault(); demoToast(); break;
@@ -1541,6 +1729,7 @@ addEventListener('scroll', () => toTop.classList.toggle('show', scrollY > 700), 
 toTop.addEventListener('click', () => scrollTo({ top: 0 }));
 
 renderGrid();
+loadProducts();
 </script>
 </body>
 </html>
