@@ -63,6 +63,17 @@ h1{font-size:28px;font-weight:900;margin-bottom:4px}
 .stat b{display:block;font-family:var(--font-display);font-size:28px;font-weight:400}
 .stat b em{font-style:normal;color:var(--accent)}
 
+.stats{margin-bottom:14px}
+.grade-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:30px}
+.gstat{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);text-align:left;cursor:pointer;transition:.15s}
+.gstat:hover{border-color:var(--line-2)}
+.gstat.on{border-color:rgba(var(--primary-rgb),.8);background:rgba(var(--primary-rgb),.12)}
+.gstat .ico{font-size:22px}
+.gstat small{display:block;color:var(--muted);font-size:12.5px}
+.gstat b{font-family:var(--font-display);font-weight:400;font-size:20px}
+.gstat .bar{height:4px;border-radius:4px;background:var(--surface-3);margin-top:4px;overflow:hidden}
+.gstat .bar span{display:block;height:100%;background:linear-gradient(90deg,var(--primary),var(--primary-2))}
+.gstat .txt{flex:1;min-width:0}
 section{margin-top:34px}
 .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .sec-head h2{font-size:20px;font-weight:900}
@@ -87,8 +98,12 @@ td .pts{width:100px}
 .toasts{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;display:grid;gap:8px;justify-items:center;pointer-events:none;max-width:calc(100% - 32px)}
 .toast{padding:12px 18px;border-radius:12px;font-size:14px;background:rgba(28,33,48,.96);border:1px solid var(--line-2);box-shadow:0 12px 30px rgba(0,0,0,.4)}
 
+@media (max-width:900px){
+  .grade-stats{grid-template-columns:repeat(3,1fr)}
+}
 @media (max-width:720px){
   .stats{grid-template-columns:1fr}
+  .grade-stats{grid-template-columns:repeat(2,1fr)}
   .who{display:none}
   .stat b{font-size:24px}
 }
@@ -121,6 +136,9 @@ td .pts{width:100px}
       <div class="stat"><small>주문 건수</small><b><em id="sOrders">-</em></b></div>
       <div class="stat"><small>주문 합계 (취소 제외)</small><b id="sTotal">-</b></div>
     </div>
+
+    <!-- 등급별 인원 -->
+    <div class="grade-stats" id="gradeStats" aria-label="등급별 인원"></div>
 
     <!-- 회원 목록 -->
     <section>
@@ -169,6 +187,7 @@ const ROLES = [['member', '회원'], ['admin', '관리자']];
 const STATUSES = ['결제완료', '배송중', '배송완료', '취소'];
 
 const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
 const fmt = n => Number(n).toLocaleString('ko-KR');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const day = d => new Date(d).toLocaleDateString('ko-KR');
@@ -196,9 +215,35 @@ async function gate(){
   $('#who').textContent = me.email;
   $('#gate').hidden = true;
   $('#app').hidden = false;
+  await loadSummary();
   await loadMembers();
   await loadOrders();
 }
+
+/* ⑤ 요약: 회원 수 · 등급별 인원 (검색 · 필터와 상관없이 전체 회원 기준) */
+async function loadSummary(){
+  const { data, error } = await db.from('shop_profiles').select('id, email, name, grade');
+  if (error){ $('#gradeStats').innerHTML = `<p class="lead">등급별 인원을 읽지 못했어요: ${esc(error.message)}</p>`; return; }
+  profileById = new Map(data.map(p => [p.id, p]));
+  $('#sMembers').textContent = fmt(data.length);
+  const count = g => data.filter(p => p.grade === g).length;
+  const cur = $('#qGrade').value;
+  $('#gradeStats').innerHTML = GRADES.map(([g, label]) => {
+    const n = count(g), pct = data.length ? n / data.length * 100 : 0;
+    const [ico, ...name] = label.split(' ');
+    return `<button class="gstat${cur === g ? ' on' : ''}" data-grade="${g}" title="${name.join(' ')} 회원만 보기">
+      <span class="ico">${ico}</span>
+      <span class="txt"><small>${name.join(' ')}</small><b>${fmt(n)}</b>명
+        <span class="bar"><span style="width:${pct}%"></span></span></span>
+    </button>`;
+  }).join('');
+}
+// 등급 칸을 누르면 그 등급으로 회원 목록을 거른다 (한 번 더 누르면 전체)
+$('#gradeStats').addEventListener('click', e => {
+  const b = e.target.closest('[data-grade]'); if (!b) return;
+  $('#qGrade').value = $('#qGrade').value === b.dataset.grade ? '' : b.dataset.grade;
+  $('#qGrade').dispatchEvent(new Event('change'));
+});
 
 /* ② 회원 목록 (이름 검색 · 등급 필터는 DB 에서 거른다) */
 async function loadMembers(){
@@ -208,10 +253,7 @@ async function loadMembers(){
   if ($('#qGrade').value) q = q.eq('grade', $('#qGrade').value);
   const { data, error } = await q;
   if (error){ $('#members').innerHTML = `<tr><td colspan="8" class="empty">회원을 읽지 못했어요: ${esc(error.message)}</td></tr>`; return; }
-  if (!name && !$('#qGrade').value){
-    profileById = new Map(data.map(p => [p.id, p]));
-    $('#sMembers').textContent = fmt(data.length);
-  }
+  $$('.gstat').forEach(b => b.classList.toggle('on', b.dataset.grade === $('#qGrade').value));
   $('#members').innerHTML = data.length ? data.map(p => `
     <tr data-id="${p.id}"${p.id === myId ? ' class="me"' : ''}>
       <td>${esc(p.name) || '<span class="lead">-</span>'}</td>
@@ -242,6 +284,7 @@ $('#members').addEventListener('click', async e => {
   if (error){ toast('저장하지 못했어요: ' + error.message); return; }
   toast('저장했어요.');
   if (tr.dataset.id === myId && role !== 'admin'){ location.replace('index.html'); return; }
+  loadSummary();
   loadMembers();
 });
 let nameTimer;
