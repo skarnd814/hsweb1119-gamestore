@@ -119,6 +119,15 @@ ul{margin:0;padding:0;list-style:none}
 /* 로그인 상태에 따라 보이기 (body.logged-in) */
 body:not(.logged-in) .user-only{display:none !important}
 body.logged-in .guest-only{display:none !important}
+.my-info{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:14px;padding:14px;border-radius:12px;background:var(--bg-2);margin:4px 0 18px}
+.my-info dt{color:var(--muted)}
+.my-info dd{margin:0;font-weight:700}
+.my-orders{display:grid;gap:10px;margin-top:8px}
+.my-order{padding:12px 14px;border-radius:12px;background:var(--bg-2);border:1px solid var(--line);font-size:13.5px}
+.my-order .top{display:flex;justify-content:space-between;gap:8px;font-weight:700;margin-bottom:4px}
+.my-order .items{color:var(--muted)}
+.status{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;background:rgba(var(--primary-rgb),.16);color:var(--accent)}
+.sec-sub{font-size:15px;font-weight:900;margin:22px 0 4px}
 .my-tier .guest{grid-column:1/-1;text-align:center;padding:10px 0}
 .my-tier .guest p{margin:6px 0 16px}
 .point-chip{
@@ -671,6 +680,7 @@ section.block{padding:90px 0 0}
       </a>
       <button class="btn btn-ghost btn-sm auth-btn guest-only" data-action="auth" data-tab="login">로그인</button>
       <button class="btn btn-primary btn-sm auth-btn guest-only" data-action="auth" data-tab="signup">회원가입</button>
+      <button class="btn btn-ghost btn-sm auth-btn user-only" data-action="mypage" title="마이페이지"><span id="userName">회원</span>&nbsp;님</button>
       <button class="btn btn-ghost btn-sm auth-btn user-only" data-action="logout">로그아웃</button>
       <button class="icon-btn" data-action="cart-open" aria-label="장바구니 열기">🛒<span class="badge" id="cartBadge">0</span></button>
       <button class="icon-btn menu-btn" id="menuBtn" aria-label="메뉴 열기" aria-expanded="false">☰</button>
@@ -704,6 +714,7 @@ section.block{padding:90px 0 0}
     <button class="btn btn-primary" data-action="auth" data-tab="signup">회원가입</button>
   </div>
   <div class="row user-only">
+    <button class="btn btn-ghost" data-action="mypage">마이페이지</button>
     <button class="btn btn-ghost" data-action="logout">로그아웃</button>
   </div>
 </nav>
@@ -977,6 +988,14 @@ section.block{padding:90px 0 0}
       <button class="btn btn-primary btn-block" type="submit">가입하고 1,000P 받기</button>
     </form>
     <p class="demo-note">⚠ 실습용 사이트예요 · 다른 사이트에서 쓰는 비밀번호는 쓰지 마세요.</p>
+  </div>
+</div>
+
+<!-- ======================= 마이페이지 모달 ======================= -->
+<div class="overlay" id="myModal" role="dialog" aria-modal="true" aria-label="마이페이지">
+  <div class="modal" style="width:min(560px,100%)">
+    <button class="modal-close" data-action="close" aria-label="닫기">✕</button>
+    <div id="myBody"></div>
   </div>
 </div>
 
@@ -1439,18 +1458,70 @@ async function loadMe(){
 
 function updateUserUI(){
   document.body.classList.toggle('logged-in', !!me.profile);
+  document.body.classList.toggle('is-admin', !!me.profile && me.profile.role === 'admin');
   if (me.profile){
     const t = myTier();
     $('#chipTier').textContent = t.icon;
     $('#chipText').innerHTML = `${t.name} · <em>${fmt(myPoints())}P</em>`;
+    $('#userName').textContent = me.profile.name || me.profile.email || '회원';
   }
   renderTiers(); renderMyTier(); renderGrid(); renderCart();
+  if ($('#myModal').classList.contains('open')) renderMyPage();
   if (me.profile && afterLogin){ const go = afterLogin; afterLogin = null; go(); }
 }
 
+/* ---- 마이페이지: shop_profiles 의 내 한 줄 (이름 · 연락처만 고칠 수 있다) ---- */
+function openMyPage(){
+  if (!me.profile){
+    afterLogin = openMyPage;
+    toast('마이페이지는 로그인한 뒤에 볼 수 있어요.', '🔐');
+    openAuth('login');
+    return;
+  }
+  renderMyPage();
+  openModal('myModal');
+  loadMyOrders();
+}
+function renderMyPage(){
+  const p = me.profile, t = myTier();
+  $('#myBody').innerHTML = `
+    <h3>마이페이지</h3>
+    <p class="lead">등급 · 포인트는 관리자만 바꿀 수 있어요.</p>
+    <dl class="my-info">
+      <dt>이메일</dt><dd>${esc(p.email)}</dd>
+      <dt>등급</dt><dd>${t.icon} ${t.name} (적립 ${t.rate}%)</dd>
+      <dt>포인트</dt><dd>${fmt(p.points)}P</dd>
+      <dt>가입일</dt><dd>${new Date(p.created_at).toLocaleDateString('ko-KR')}</dd>
+    </dl>
+    <form id="myForm" novalidate>
+      <div class="field"><label for="my-name">이름</label><input class="input" id="my-name" value="${esc(p.name)}" autocomplete="name"></div>
+      <div class="field"><label for="my-phone">연락처</label><input class="input" id="my-phone" type="tel" value="${esc(p.phone)}" autocomplete="tel"></div>
+      <button class="btn btn-primary btn-block" type="submit">이름 · 연락처 저장</button>
+    </form>
+    <h4 class="sec-sub">내 주문 내역</h4>
+    <div class="my-orders" id="myOrders"><p class="lead">불러오는 중…</p></div>`;
+  $('#myForm').addEventListener('submit', saveMyInfo);
+}
+function saveMyInfo(e){
+  e.preventDefault();
+  const name = $('#my-name').value.trim(), phone = $('#my-phone').value.trim();
+  if (name.length < 2) return toast('이름을 2자 이상 입력해 주세요.', '✏️');
+  withBusy(e.submitter || $('#myForm [type=submit]'), async () => {
+    const { error } = await db.from('shop_profiles').update({ name, phone }).eq('id', me.profile.id);
+    if (error) return toast('저장하지 못했어요: ' + esc(error.message), '⚠️');
+    toast('내 정보를 저장했어요.', '✅');
+    await loadMe();
+    loadMyOrders();
+  });
+}
+async function loadMyOrders(){}
+
 if (db){
-  // 로그인 · 로그아웃 · 새로 고침 때마다 불린다. (콜백 안에서 바로 DB 를 부르면 멈출 수 있어 setTimeout 으로 넘긴다)
+  // 페이지가 열릴 때 로그인 상태를 확인한다
+  db.auth.getSession().then(({ data }) => { me.session = data.session; loadMe(); });
+  // 로그인 · 로그아웃이 바뀔 때마다 (콜백 안에서 바로 DB 를 부르면 멈출 수 있어 setTimeout 으로 넘긴다)
   db.auth.onAuthStateChange((event, session) => {
+    if (event === 'INITIAL_SESSION') return;
     me.session = session;
     setTimeout(loadMe, 0);
   });
@@ -1692,7 +1763,8 @@ document.addEventListener('click', e => {
     case 'hero-next':    goSlide(cur + 1); break;
     case 'show-sale':    e.preventDefault(); setCat('sale'); $('#store').scrollIntoView(); break;
     case 'use-all':      $('#usePt').value = Math.min(myPoints(), payCalc().sum); updatePay(); break;
-    case 'logout':       closeMobileNav(); logout(); break;
+    case 'logout':       closeMobileNav(); closeModal($('#myModal')); logout(); break;
+    case 'mypage':       closeMobileNav(); openMyPage(); break;
     case 'pay':          doPay(); break;
     case 'play':         toast('실습용 데모예요 · 실제 게임은 실행되지 않아요', '🎮'); break;
     case 'demo':         e.preventDefault(); demoToast(); break;
