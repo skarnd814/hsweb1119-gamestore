@@ -1534,7 +1534,21 @@ function saveMyInfo(e){
     loadMyOrders();
   });
 }
-async function loadMyOrders(){}
+// 내 주문 내역: 최신순, 담긴 상품 이름 · 수량까지 (주문 상세 → 상품 표를 이어서 읽는다)
+async function loadMyOrders(){
+  const box = $('#myOrders'); if (!box || !me.profile) return;
+  const { data, error } = await db.from('shop_orders')
+    .select('id, total, status, created_at, shop_order_items(qty, unit_price, shop_products(name))')
+    .eq('user_id', me.profile.id)
+    .order('created_at', { ascending: false });
+  if (error){ box.innerHTML = `<p class="lead">주문 내역을 읽지 못했어요: ${esc(error.message)}</p>`; return; }
+  box.innerHTML = data.length ? data.map(o => `
+    <div class="my-order">
+      <div class="top"><span>#${o.id} · ${new Date(o.created_at).toLocaleString('ko-KR')}</span><span class="status">${esc(o.status)}</span></div>
+      <div class="items">${o.shop_order_items.map(it => `${esc(it.shop_products ? it.shop_products.name : '판매 종료 상품')} × ${it.qty}`).join(', ') || '담긴 상품 없음'}</div>
+      <div class="top" style="margin:4px 0 0"><span></span><span>${won(o.total)}</span></div>
+    </div>`).join('') : '<p class="lead">아직 주문이 없어요.</p>';
+}
 
 if (db){
   // 페이지가 열릴 때 로그인 상태를 확인한다
@@ -1661,12 +1675,8 @@ function renderPayForm(){
         <div class="name"><b>${g.title}</b><small>${g.ko}</small></div><span class="p">${won(finalPrice(g))}</span></li>`; }).join('')}
     </ul>
 
-    <div class="pay-label">포인트 사용 <small>보유 ${fmt(myPoints())}P · 1,000P부터 사용</small></div>
-    <div class="pt-row">
-      <input class="input" id="usePt" type="number" min="0" step="100" value="0" inputmode="numeric" aria-label="사용할 포인트">
-      <button class="btn btn-ghost" data-action="use-all">전액 사용</button>
-    </div>
-    <p class="pt-msg" id="ptMsg">&nbsp;</p>
+    <div class="pay-label">포인트 <small>보유 ${fmt(myPoints())}P</small></div>
+    <p class="pt-msg">포인트 사용 · 적립은 관리자만 반영할 수 있어 이번 결제에는 쓰지 않아요. 적립은 「적립 예정」으로만 보여 드려요.</p>
 
     <div class="pay-label">결제 수단</div>
     <div class="methods" role="radiogroup" aria-label="결제 수단">
@@ -1679,47 +1689,34 @@ function renderPayForm(){
     <div class="summary">
       <div class="r"><span>상품 금액</span><span>${won(sub)}</span></div>
       <div class="r"><span>할인</span><span class="minus">-${won(sub - sum)}</span></div>
-      <div class="r"><span>포인트 사용</span><span class="minus" id="sumPt">-0P</span></div>
       <div class="r total"><span>최종 결제 금액</span><span id="sumTotal">${won(sum)}</span></div>
       <div class="r earn-r"><span>적립 예정 (${myTier().icon} ${myTier().name} ${myTier().rate}%)</span><span id="sumEarn">+${fmt(earnOf(sum))}P</span></div>
     </div>
     <label class="check"><input type="checkbox" id="payAgree"> 주문 내용을 확인했으며 결제에 동의합니다</label>
     <button class="btn btn-primary btn-block" id="payBtn" data-action="pay" style="margin-top:8px">⚡ ${won(sum)} 결제하기</button>
-    <p class="demo-note">⚠ 실습용 결제예요 · 돈은 나가지 않고 주문만 저장돼요.</p>`;
-  $('#usePt').addEventListener('input', updatePay);
+    <p class="demo-note">⚠ 실습용 결제예요 · 카드 번호 같은 값은 받지 않고, 돈은 나가지 않으며 주문만 저장돼요.</p>`;
+}
+// 주문 줄 만들기: 같은 상품이 두 번 담겼으면 수량을 합쳐 한 줄로 (주문 상세의 기본키가 order_id + product_id)
+function payLines(){
+  const qty = new Map();
+  payItems.forEach(id => qty.set(id, (qty.get(id) || 0) + 1));
+  return [...qty].map(([id, n]) => ({ product_id: id, qty: n, unit_price: finalPrice(byId(id)) }));
 }
 function payCalc(){
-  const sum = payItems.reduce((s, id) => s + finalPrice(byId(id)), 0);
-  const max = Math.min(myPoints(), sum);
-  let use = Math.floor((+$('#usePt').value || 0) / 100) * 100;
-  let msg = '', warn = false;
-  if (use > max){ use = Math.floor(max / 100) * 100; msg = `최대 ${fmt(use)}P까지 사용할 수 있어요.`; warn = true; }
-  if (use > 0 && use < 1000){ msg = '포인트는 1,000P부터 사용할 수 있어요.'; warn = true; use = 0; }
-  return { sum, use, total: sum - use, msg, warn };
-}
-function updatePay(){
-  const c = payCalc();
-  $('#ptMsg').textContent = c.msg || (c.use ? `${fmt(c.use)}P를 사용해요.` : ' ');
-  $('#ptMsg').classList.toggle('warn', c.warn);
-  $('#sumPt').textContent = `-${fmt(c.use)}P`;
-  $('#sumTotal').textContent = won(c.total);
-  $('#sumEarn').textContent = `+${fmt(earnOf(c.total))}P`;
-  $('#payBtn').textContent = `⚡ ${won(c.total)} 결제하기`;
+  const lines = payLines();
+  const total = lines.reduce((s, l) => s + l.qty * l.unit_price, 0);   // 합계 = 수량 × 단가의 합
+  return { lines, total };
 }
 async function doPay(){
   if (!$('#payAgree').checked){ toast('결제 동의에 체크해 주세요', '☑️'); $('#payAgree').focus(); return; }
   const c = payCalc();
-  const items = payItems.map(id => byId(id));
-  if (items.some(g => !g.dbId)){ toast('상품 정보를 아직 DB 에서 읽지 못했어요. 새로 고침 뒤 다시 해 주세요.', '⚠️'); return; }
   $('#payBody').innerHTML = `<div class="processing"><div class="spinner"></div><h3>결제 진행 중…</h3><p class="lead">잠시만 기다려 주세요</p></div>`;
 
-  // 1) 주문 한 건 (user_id 는 DB 가 로그인한 사람으로 채운다)
-  const { data: order, error: oe } = await db.from('shop_orders').insert({ total: c.total }).select('id').single();
+  // 1) 주문 한 건: total 만 보낸다 (user_id · status 는 DB 가 로그인한 사람 · 「결제완료」 로 채운다)
+  const { data: order, error: oe } = await db.from('shop_orders').insert({ total: c.total }).select().single();
   if (oe) return payFailed(oe);
-  // 2) 주문에 담긴 게임들
-  const { error: ie } = await db.from('shop_order_items').insert(
-    items.map(g => ({ order_id: order.id, product_id: g.dbId, qty: 1, unit_price: finalPrice(g) }))
-  );
+  // 2) 받은 주문 번호로 담긴 상품들을 한꺼번에
+  const { error: ie } = await db.from('shop_order_items').insert(c.lines.map(l => ({ order_id: order.id, ...l })));
   if (ie) return payFailed(ie);
   renderDone(c, order.id);
   loadMe();   // 누적 구매 · 주문 수 새로 읽기
@@ -1735,7 +1732,7 @@ function renderDone(c, orderId){
     <div class="done">
       <div class="done-ico">✓</div>
       <h3>결제 완료! 바로 플레이하세요</h3>
-      <p class="lead" style="margin-bottom:10px">주문번호 #${orderId} · ${won(c.total)} 결제${c.use ? ` · ${fmt(c.use)}P 사용` : ''}</p>
+      <p class="lead" style="margin-bottom:10px">주문번호 #${orderId} · 합계 ${won(c.total)}</p>
       <span class="chip earned">💎 적립 예정 +${fmt(earned)}P (${myTier().name} ${myTier().rate}%)</span>
       <div class="dl-list">${payItems.map(id => { const g = byId(id); return `
         <div class="dl-item" data-dl="${id}">
@@ -1803,7 +1800,6 @@ document.addEventListener('click', e => {
     case 'hero-prev':    goSlide(cur - 1); break;
     case 'hero-next':    goSlide(cur + 1); break;
     case 'show-sale':    e.preventDefault(); setCat('sale'); $('#store').scrollIntoView(); break;
-    case 'use-all':      $('#usePt').value = Math.min(myPoints(), payCalc().sum); updatePay(); break;
     case 'logout':       closeMobileNav(); closeModal($('#myModal')); logout(); break;
     case 'mypage':       closeMobileNav(); openMyPage(); break;
     case 'pay':          doPay(); break;
