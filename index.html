@@ -299,6 +299,8 @@ section.block{padding:90px 0 0}
 .card:hover{transform:translateY(-6px);border-color:rgba(var(--primary-rgb),.55);box-shadow:0 18px 40px rgba(0,0,0,.4),0 0 0 1px rgba(var(--primary-rgb),.25)}
 .card-media{position:relative;aspect-ratio:3/4;overflow:hidden;cursor:pointer;background:var(--surface-2)}
 .card-media img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
+.soldout{position:absolute;inset:auto 12px 12px auto;padding:3px 10px;border-radius:8px;font-weight:900;font-size:13px;color:#fff;background:#b91c1c}
+.card:has(.soldout) .card-media img{filter:grayscale(.8) brightness(.7)}
 .card:hover .card-media img{transform:scale(1.05)}
 .price .sale{
   display:inline-block;margin-right:6px;padding:1px 7px;border-radius:6px;font-weight:900;font-size:13px;color:#fff;vertical-align:3px;
@@ -730,8 +732,8 @@ section.block{padding:90px 0 0}
       <p class="slide-desc">작물을 기르고, 마을 사람들과 친해지고, 광산을 탐험하세요. 친구와 함께하는 협동 농사도 지원합니다.</p>
       <div class="slide-price"><span class="game-name">Stardew Valley</span><del>16,000원</del><strong>11,200원</strong><span class="off">-30%</span></div>
       <div class="slide-actions">
-        <button class="btn btn-primary" data-action="buy" data-id="stardew">⚡ 지금 구매</button>
-        <button class="btn btn-ghost" data-action="detail" data-id="stardew">자세히 보기</button>
+        <button class="btn btn-primary" data-action="buy" data-name="Stardew Valley">⚡ 지금 구매</button>
+        <button class="btn btn-ghost" data-action="detail" data-name="Stardew Valley">자세히 보기</button>
       </div>
     </div>
   </div>
@@ -744,8 +746,8 @@ section.block{padding:90px 0 0}
       <p class="slide-desc">손으로 그린 거대한 지하 세계를 탐험하는 액션 어드벤처. 수백 시간을 빠져들게 만드는 탐험의 재미.</p>
       <div class="slide-price"><span class="game-name">Hollow Knight</span><del>16,500원</del><strong>8,200원</strong><span class="off">-50%</span></div>
       <div class="slide-actions">
-        <button class="btn btn-primary" data-action="buy" data-id="hollow">⚡ 지금 구매</button>
-        <button class="btn btn-ghost" data-action="detail" data-id="hollow">자세히 보기</button>
+        <button class="btn btn-primary" data-action="buy" data-name="Hollow Knight">⚡ 지금 구매</button>
+        <button class="btn btn-ghost" data-action="detail" data-name="Hollow Knight">자세히 보기</button>
       </div>
     </div>
   </div>
@@ -758,8 +760,8 @@ section.block{padding:90px 0 0}
       <p class="slide-desc">거대한 미래 도시를 누비는 오픈월드 액션 RPG. 당신의 선택이 이야기의 결말을 바꿉니다.</p>
       <div class="slide-price"><span class="game-name">Cyberpunk 2077</span><del>66,000원</del><strong>33,000원</strong><span class="off">-50%</span></div>
       <div class="slide-actions">
-        <button class="btn btn-primary" data-action="buy" data-id="cyberpunk">⚡ 지금 구매</button>
-        <button class="btn btn-ghost" data-action="detail" data-id="cyberpunk">자세히 보기</button>
+        <button class="btn btn-primary" data-action="buy" data-name="Cyberpunk 2077">⚡ 지금 구매</button>
+        <button class="btn btn-ghost" data-action="detail" data-name="Cyberpunk 2077">자세히 보기</button>
       </div>
     </div>
   </div>
@@ -772,8 +774,8 @@ section.block{padding:90px 0 0}
       <p class="slide-desc">광활한 판타지 세계를 자유롭게 탐험하는 오픈월드 액션 RPG. 강력한 적을 넘어서는 성취감을 느껴 보세요.</p>
       <div class="slide-price"><span class="game-name">ELDEN RING</span><strong>64,800원</strong></div>
       <div class="slide-actions">
-        <button class="btn btn-primary" data-action="buy" data-id="eldenring">⚡ 지금 구매</button>
-        <button class="btn btn-ghost" data-action="detail" data-id="eldenring">자세히 보기</button>
+        <button class="btn btn-primary" data-action="buy" data-name="ELDEN RING">⚡ 지금 구매</button>
+        <button class="btn btn-ghost" data-action="detail" data-name="ELDEN RING">자세히 보기</button>
       </div>
     </div>
   </div>
@@ -810,13 +812,8 @@ section.block{padding:90px 0 0}
       </div>
     </div>
     <div class="toolbar">
-      <div class="tabs" role="tablist" aria-label="장르 필터" id="tabs">
+      <div class="tabs" role="tablist" aria-label="분류 필터" id="tabs">
         <button class="tab active" data-cat="all" role="tab" aria-selected="true">전체</button>
-        <button class="tab" data-cat="action" role="tab" aria-selected="false">액션</button>
-        <button class="tab" data-cat="rpg" role="tab" aria-selected="false">RPG</button>
-        <button class="tab" data-cat="indie" role="tab" aria-selected="false">인디</button>
-        <button class="tab" data-cat="coop" role="tab" aria-selected="false">협동</button>
-        <button class="tab" data-cat="sale" role="tab" aria-selected="false">할인 중</button>
       </div>
       <label class="search"><span aria-hidden="true">🔍</span><span class="sr-only">게임 검색</span><input id="search" type="search" placeholder="게임 이름으로 검색"></label>
       <select class="select" id="sort" aria-label="정렬">
@@ -1048,35 +1045,26 @@ const TIERS = [
   { key:'legend',  name:'레전드', icon:'👑', min:600000, rate:10, perk:'전용 배지 · 한정 굿즈' },
 ];
 
-// 게임 목록: 처음엔 아래 값으로 그리고, shop_products 를 읽으면 가격·할인율·이름·표지를 DB 값으로 바꾼다.
-// (태그·평가·설명처럼 DB 에 없는 정보는 여기 값을 이름(title)으로 짝지어 쓴다)
-// cover 가 없으면 "일러스트 준비 중" 임시 표지로 보여 줌
-const GAMES = [
-  { id:'stardew', title:'Stardew Valley', ko:'스타듀 밸리', dev:'ConcernedApe', cats:['indie','coop','rpg'], tags:['농장 시뮬','인디','협동'],
-    price:16000, sale:30, rating:98, review:'압도적으로 긍정적', size:'0.5 GB', cover:'img/cover-stardew.png', emoji:'🌾', c1:'#3f8a30', c2:'#f2b84b',
+// 게임 표시 정보: DB(shop_products)에 없는 태그 · 평가 · 용량 · 설명을 상품 이름(name)으로 짝지어 쓴다.
+// 가격 · 할인율 · 재고 · 그림은 모두 DB 에서 읽는다 (여기에는 상품 목록이 없다).
+const GAME_INFO = {
+  'Stardew Valley': { tags:['농장 시뮬','인디','협동'], rating:98, review:'압도적으로 긍정적', size:'0.5 GB', emoji:'🌾', c1:'#3f8a30', c2:'#f2b84b',
     desc:'할아버지가 남긴 낡은 농장을 물려받아 새로운 삶을 시작하세요. 작물을 기르고 동물을 돌보고, 마을 사람들과 우정을 쌓고, 광산을 탐험하며 나만의 하루를 만들어 가는 힐링 농장 RPG입니다.' },
-  { id:'hollow', title:'Hollow Knight', ko:'할로우 나이트', dev:'Team Cherry', cats:['action','indie'], tags:['메트로배니아','액션','인디'],
-    price:16500, sale:50, rating:97, review:'압도적으로 긍정적', size:'9 GB', cover:'img/cover-hollow.png', emoji:'🗡️', c1:'#0b1b2d', c2:'#3f7aa8',
+  'Hollow Knight': { tags:['메트로배니아','액션','인디'], rating:97, review:'압도적으로 긍정적', size:'9 GB', emoji:'🗡️', c1:'#0b1b2d', c2:'#3f7aa8',
     desc:'무너진 지하 왕국을 탐험하는 2D 액션 어드벤처. 손으로 그린 아름다운 세계, 도전적인 전투, 숨겨진 길로 가득한 거대한 지도가 당신을 기다립니다.' },
-  { id:'eldenring', title:'ELDEN RING', ko:'엘든 링', dev:'FromSoftware', cats:['action','rpg'], tags:['오픈월드','액션 RPG','고난도'],
-    price:64800, sale:0, rating:93, review:'매우 긍정적', size:'60 GB', cover:'img/cover-eldenring.png', emoji:'🌳', c1:'#2c2050', c2:'#d39a5c',
+  'ELDEN RING': { tags:['오픈월드','액션 RPG','고난도'], rating:93, review:'매우 긍정적', size:'60 GB', emoji:'🌳', c1:'#2c2050', c2:'#d39a5c',
     desc:'황금 나무가 빛나는 광활한 세계 "틈새의 땅"을 탐험하는 오픈월드 액션 RPG. 자유로운 탐험과 강력한 보스와의 전투, 깊이 있는 캐릭터 육성을 즐겨 보세요.' },
-  { id:'bg3', title:"Baldur's Gate 3", ko:'발더스 게이트 3', dev:'Larian Studios', cats:['rpg','coop'], tags:['RPG','턴제 전략','협동'],
-    price:66000, sale:0, rating:96, review:'압도적으로 긍정적', size:'150 GB', cover:'img/cover-bg3.png', emoji:'🐉', c1:'#3b0764', c2:'#dc2626',
+  "Baldur's Gate 3": { tags:['RPG','턴제 전략','협동'], rating:96, review:'압도적으로 긍정적', size:'150 GB', emoji:'🐉', c1:'#3b0764', c2:'#dc2626',
     desc:'친구들과 함께 모험하는 정통 판타지 RPG. 모든 선택이 이야기를 바꾸고, 수백 가지 방법으로 문제를 해결할 수 있는 자유로운 게임입니다.' },
-  { id:'cyberpunk', title:'Cyberpunk 2077', ko:'사이버펑크 2077', dev:'CD PROJEKT RED', cats:['action','rpg'], tags:['오픈월드','RPG','SF'],
-    price:66000, sale:50, rating:86, review:'매우 긍정적', size:'70 GB', cover:'img/cover-cyberpunk.png', emoji:'🌆', c1:'#1e0b40', c2:'#ff2bd6',
+  'Cyberpunk 2077': { tags:['오픈월드','RPG','SF'], rating:86, review:'매우 긍정적', size:'70 GB', emoji:'🌆', c1:'#1e0b40', c2:'#ff2bd6',
     desc:'네온으로 빛나는 거대 도시 나이트 시티를 무대로 한 오픈월드 액션 RPG. 사이버웨어로 몸을 강화하고, 당신만의 방식으로 도시의 전설이 되어 보세요.' },
-  { id:'hades', title:'Hades', ko:'하데스', dev:'Supergiant Games', cats:['action','indie'], tags:['로그라이크','액션','인디'],
-    price:26000, sale:40, rating:98, review:'압도적으로 긍정적', size:'15 GB', cover:'img/cover-hades.png', emoji:'🔥', c1:'#7f1d1d', c2:'#f97316',
+  'Hades': { tags:['로그라이크','액션','인디'], rating:98, review:'압도적으로 긍정적', size:'15 GB', emoji:'🔥', c1:'#7f1d1d', c2:'#f97316',
     desc:'지하 세계의 왕자가 되어 탈출을 시도하는 로그라이크 액션 게임. 도전할 때마다 달라지는 능력과 무기, 매번 이어지는 이야기가 계속 다시 플레이하고 싶게 만듭니다.' },
-  { id:'terraria', title:'Terraria', ko:'테라리아', dev:'Re-Logic', cats:['indie','coop','action'], tags:['샌드박스','어드벤처','협동'],
-    price:10500, sale:0, rating:97, review:'압도적으로 긍정적', size:'0.2 GB', cover:'img/cover-terraria.png', emoji:'⛏️', c1:'#14532d', c2:'#38bdf8',
+  'Terraria': { tags:['샌드박스','어드벤처','협동'], rating:97, review:'압도적으로 긍정적', size:'0.2 GB', emoji:'⛏️', c1:'#14532d', c2:'#38bdf8',
     desc:'파고, 싸우고, 탐험하고, 건설하세요! 무엇이든 가능한 2D 샌드박스 어드벤처. 친구와 함께 거대한 세계를 개척하며 수많은 보스에 도전할 수 있어요.' },
-  { id:'lethal', title:'Lethal Company', ko:'리썰 컴퍼니', dev:'Zeekerss', cats:['coop','indie'], tags:['협동','호러','인디'],
-    price:11000, sale:20, rating:96, review:'압도적으로 긍정적', size:'1 GB', cover:'img/cover-lethal.png', emoji:'👾', c1:'#1c1917', c2:'#84cc16',
+  'Lethal Company': { tags:['협동','호러','인디'], rating:96, review:'압도적으로 긍정적', size:'1 GB', emoji:'👾', c1:'#1c1917', c2:'#84cc16',
     desc:'버려진 행성에서 폐품을 모아 회사의 할당량을 채우는 4인 협동 호러 게임. 친구들과 소리 지르며 웃게 되는 예측 불가능한 탐사가 펼쳐집니다.' },
-];
+};
 
 /* ============================================================
    도우미
@@ -1085,7 +1073,7 @@ const $  = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const fmt = n => n.toLocaleString('ko-KR');
 const won = n => fmt(n) + '원';
-const byId = id => GAMES.find(g => g.id === id);
+const byId = id => products.get(Number(id));
 const finalPrice = g => Math.round(g.price * (100 - g.sale) / 100 / 100) * 100;
 // DB 등급(BRONZE…LEGEND) → 화면 등급. 로그인 전에는 브론즈 기준으로 적립 예정액을 보여 준다
 const myTier = () => TIERS.find(t => t.key === (me.profile ? me.profile.grade.toLowerCase() : 'bronze')) || TIERS[0];
@@ -1192,43 +1180,88 @@ hero.addEventListener('touchend', e => {
 /* ============================================================
    스토어 목록
    ============================================================ */
-const state = { cat: 'all', q: '', sort: 'pop' };
+const state = { cat: 'all', q: '', sort: 'pop', loading: true };
 const wish = new Set();
+const products = new Map();   // 읽어 온 상품 (id → 상품). 장바구니 · 결제는 표의 id 로 찾는다
+let shown = [];                // 지금 화면에 그리는 상품 목록 (DB 에서 거른 결과)
+let fetchSeq = 0;              // 늦게 온 옛 응답을 버리기 위한 번호
+const COLS = 'id, name, name_ko, developer, category, price, sale, stock, image_url';
 
-function renderGrid(){
-  let list = GAMES.map((g, i) => ({ ...g, rank: i + 1 }));
-  if (state.cat === 'sale') list = list.filter(g => g.sale > 0);
-  else if (state.cat !== 'all') list = list.filter(g => g.cats.includes(state.cat));
+// 표의 한 줄 → 화면에서 쓰는 상품 모양 (표시 정보는 GAME_INFO 에서 이름으로 찾는다)
+function toGame(row){
+  const info = GAME_INFO[row.name] || { tags: [row.category], rating: 0, review: '새로 들어온 게임', size: '-',
+                                        emoji: '🎮', c1: '#1c2130', c2: '#7c3aed', desc: '' };
+  const g = { ...info, id: row.id, title: row.name, ko: row.name_ko || '', dev: row.developer || '',
+              category: row.category, price: row.price, sale: row.sale || 0, stock: row.stock, cover: row.image_url || null };
+  products.set(g.id, g);
+  return g;
+}
+
+// 지금 고른 분류 · 검색어로 shop_products 에서 판매 중(is_active)인 상품을 id 순으로 읽는다
+async function fetchProducts(){
+  if (!db){ state.loading = false; shown = []; renderGrid(); return; }
+  const seq = ++fetchSeq;
+  state.loading = true; renderGrid();
+  let q = db.from('shop_products').select(COLS).eq('is_active', true).order('id');
+  if (state.cat === 'sale') q = q.gt('sale', 0);
+  else if (state.cat !== 'all') q = q.eq('category', state.cat);
   if (state.q){
-    const q = state.q.toLowerCase();
-    list = list.filter(g => (g.title + g.ko + g.dev).toLowerCase().includes(q));
+    // 이름(영문) 또는 한글 이름에 검색어가 들어 있는 상품 (대소문자 구분 없이)
+    const word = state.q.replace(/[,()*%_\\]/g, ' ').trim();
+    if (word) q = q.or(`name.ilike.*${word}*,name_ko.ilike.*${word}*`);
   }
-  if (state.sort === 'low')  list.sort((a, b) => finalPrice(a) - finalPrice(b));
-  if (state.sort === 'high') list.sort((a, b) => finalPrice(b) - finalPrice(a));
-  if (state.sort === 'sale') list.sort((a, b) => b.sale - a.sale);
+  const { data, error } = await q;
+  if (seq !== fetchSeq) return;
+  state.loading = false;
+  if (error){ shown = []; renderGrid(); toast('상품 목록을 불러오지 못했어요: ' + esc(error.message), '⚠️'); return; }
+  shown = data.map(toGame);
+  renderGrid();
+}
 
-  $('#grid').innerHTML = list.length ? list.map((g, i) => `
+// 분류 메뉴: 표에 있는 category 값으로 만든다 (+ 전체, 할인 중)
+async function loadCategories(){
+  if (!db) return;
+  const { data, error } = await db.from('shop_products').select('category').eq('is_active', true).order('id');
+  if (error) return;
+  const cats = [...new Set(data.map(r => r.category))];
+  $('#tabs').innerHTML = [['all', '전체'], ...cats.map(c => [c, c]), ['sale', '할인 중']].map(([v, label]) =>
+    `<button class="tab${v === state.cat ? ' active' : ''}" data-cat="${esc(v)}" role="tab" aria-selected="${v === state.cat}">${esc(label)}</button>`).join('');
+}
+
+function cardHTML(g, i){
+  const out = g.stock <= 0;
+  return `
     <article class="card" style="animation-delay:${i * 50}ms">
       <div class="card-media" data-action="detail" data-id="${g.id}">
         ${coverHTML(g)}
+        ${out ? '<span class="soldout">품절</span>' : ''}
       </div>
       <div class="card-body">
         <div class="body-top">
-          <div class="tags">${g.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+          <div class="tags">${g.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
           <button class="wish${wish.has(g.id) ? ' on' : ''}" data-action="wish" data-id="${g.id}" aria-label="찜하기">${wish.has(g.id) ? '♥' : '♡'}</button>
         </div>
-        <h3 data-action="detail" data-id="${g.id}"><span class="rank">#${g.rank}</span>${g.title}</h3>
-        <p class="sub">${g.ko} · ${g.dev}</p>
-        <p class="rating">👍 ${g.rating}% ${g.review}</p>
+        <h3 data-action="detail" data-id="${g.id}"><span class="rank">#${g.id}</span>${esc(g.title)}</h3>
+        <p class="sub">${esc(g.ko)}${g.dev ? ' · ' + esc(g.dev) : ''}</p>
+        ${g.rating ? `<p class="rating">👍 ${g.rating}% ${g.review}</p>` : ''}
         <div class="price-row">${priceHTML(g)}<span class="earn">+${fmt(earnOf(finalPrice(g)))}P</span></div>
         <div class="card-actions">
-          <button class="btn btn-ghost cart-add" data-action="cart-add" data-id="${g.id}" aria-label="${g.title} 장바구니에 담기">🛒</button>
-          <button class="btn btn-primary" data-action="buy" data-id="${g.id}">바로 구매</button>
+          <button class="btn btn-ghost cart-add" data-action="cart-add" data-id="${g.id}" aria-label="${esc(g.title)} 장바구니에 담기"${out ? ' disabled' : ''}>🛒</button>
+          <button class="btn btn-primary" data-action="buy" data-id="${g.id}"${out ? ' disabled' : ''}>${out ? '품절' : '바로 구매'}</button>
         </div>
       </div>
-    </article>`).join('')
-    : `<div class="empty">🔍 "${state.q.replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]))}"에 맞는 게임이 없어요.</div>`;
+    </article>`;
 }
+
+function renderGrid(){
+  if (state.loading){ $('#grid').innerHTML = `<div class="empty">⏳ 불러오는 중…</div>`; return; }
+  const list = [...shown];
+  if (state.sort === 'low')  list.sort((a, b) => finalPrice(a) - finalPrice(b));
+  if (state.sort === 'high') list.sort((a, b) => finalPrice(b) - finalPrice(a));
+  if (state.sort === 'sale') list.sort((a, b) => b.sale - a.sale);
+  $('#grid').innerHTML = list.length ? list.map(cardHTML).join('') : `<div class="empty">상품이 없습니다.</div>`;
+}
+
 $('#tabs').addEventListener('click', e => {
   const t = e.target.closest('.tab'); if (!t) return;
   setCat(t.dataset.cat);
@@ -1236,31 +1269,18 @@ $('#tabs').addEventListener('click', e => {
 function setCat(cat){
   state.cat = cat;
   $$('.tab').forEach(b => { const on = b.dataset.cat === cat; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
-  renderGrid();
+  fetchProducts();
 }
-// shop_products 에서 판매 중인 게임을 읽어 GAMES 를 DB 값으로 바꾼다.
-// 읽지 못하면 위에 적어 둔 기본 목록으로 그대로 보여 준다 (결제는 DB 상품 번호가 있어야 저장된다)
-async function loadProducts(){
-  if (!db) return;
-  const { data, error } = await db.from('shop_products')
-    .select('id, name, name_ko, developer, category, price, sale, image_url')
-    .order('id');
-  if (error){ toast('상품 목록을 불러오지 못했어요: ' + esc(error.message), '⚠️'); return; }
-  const local = new Map(GAMES.map(g => [g.title, g]));
-  const list = data.map(row => {
-    const base = local.get(row.name) || {
-      id: 'p' + row.id, cats: [], tags: [row.category], rating: 0, review: '새 게임', size: '-',
-      emoji: '🎮', c1: '#1c2130', c2: '#7c3aed', desc: '',
-    };
-    return { ...base, dbId: row.id, title: row.name, ko: row.name_ko || base.ko || '', dev: row.developer || base.dev || '',
-             price: row.price, sale: row.sale, cover: row.image_url || base.cover || null };
-  });
-  GAMES.splice(0, GAMES.length, ...list);
-  renderGrid();
-}
-
-$('#search').addEventListener('input', e => { state.q = e.target.value.trim(); renderGrid(); });
+let searchTimer;
+$('#search').addEventListener('input', e => {
+  state.q = e.target.value.trim();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(fetchProducts, 250);
+});
 $('#sort').addEventListener('change', e => { state.sort = e.target.value; renderGrid(); });
+
+// 히어로 슬라이드 버튼은 상품 이름(data-name)으로 표의 id 를 찾는다
+const idByName = name => { for (const g of products.values()) if (g.title === name) return g.id; return null; };
 
 /* ============================================================
    멤버십
@@ -1527,20 +1547,31 @@ if (db){
   });
 }
 
-/* 게임 상세 */
-function openDetail(id){
-  const g = byId(id), p = finalPrice(g);
+/* 게임 상세: 표에서 id 로 한 건만 읽어 온다 */
+async function openDetail(id){
+  $('#detailBody').innerHTML = `<div class="processing"><div class="spinner"></div><p class="lead">불러오는 중…</p></div>`;
+  openModal('detailModal');
+  const { data, error } = db
+    ? await db.from('shop_products').select(COLS).eq('id', id).eq('is_active', true).single()
+    : { data: null, error: { message: 'Supabase 에 연결하지 못했어요' } };
+  if (error || !data){
+    $('#detailBody').innerHTML = `<div class="processing"><h3>상품이 없습니다</h3><p class="lead">${esc(error ? error.message : '')}</p></div>`;
+    return;
+  }
+  const g = toGame(data), p = finalPrice(g), out = g.stock <= 0;
   $('#detailBody').innerHTML = `
     <div class="detail">
       <div class="detail-cover">${coverHTML(g)}</div>
       <div class="detail-info">
-        <div class="tags">${g.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
-        <h3>${g.title}</h3>
-        <p class="sub">${g.ko} · ${g.dev}</p>
-        <p class="rating">👍 ${g.rating}% ${g.review}</p>
-        <p class="desc">${g.desc}</p>
+        <div class="tags">${g.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+        <h3>${esc(g.title)}</h3>
+        <p class="sub">${esc(g.ko)}${g.dev ? ' · ' + esc(g.dev) : ''}</p>
+        ${g.rating ? `<p class="rating">👍 ${g.rating}% ${g.review}</p>` : ''}
+        ${g.desc ? `<p class="desc">${g.desc}</p>` : ''}
         <dl class="spec">
+          <dt>분류</dt><dd>${esc(g.category)}</dd>
           <dt>용량</dt><dd>${g.size}</dd>
+          <dt>재고</dt><dd>${out ? '<b style="color:#f87171">품절</b>' : '구매 가능'}</dd>
           <dt>지원</dt><dd>Windows · 한국어 지원</dd>
           <dt>적립</dt><dd>${myTier().icon} ${myTier().name} ${myTier().rate}% · <b style="color:var(--accent)">+${fmt(earnOf(p))}P</b></dd>
           <dt>배송</dt><dd>⚡ 결제 즉시 다운로드</dd>
@@ -1549,23 +1580,26 @@ function openDetail(id){
           <div class="price">${g.sale ? `<del>${won(g.price)}</del>` : ''}<strong>${won(p)}</strong></div>
           ${g.sale ? `<span class="chip">-${g.sale}%</span>` : ''}
           <span style="flex:1"></span>
-          <button class="btn btn-ghost" data-action="cart-add" data-id="${g.id}">🛒 담기</button>
-          <button class="btn btn-primary" data-action="buy" data-id="${g.id}">바로 구매</button>
+          <button class="btn btn-ghost" data-action="cart-add" data-id="${g.id}"${out ? ' disabled' : ''}>🛒 담기</button>
+          <button class="btn btn-primary" data-action="buy" data-id="${g.id}"${out ? ' disabled' : ''}>${out ? '품절' : '바로 구매'}</button>
         </div>
       </div>
     </div>`;
-  openModal('detailModal');
 }
 
 /* ============================================================
    장바구니
    ============================================================ */
 const cart = [];
+// 장바구니에는 표의 id 를 담는다 (브라우저 메모리에만, 새로 고침하면 비워짐)
 function addToCart(id){
+  const g = byId(id);
+  if (!g) return toast('상품을 불러오는 중이에요.', '⏳');
+  if (g.stock <= 0) return toast('품절된 상품이에요.', '🚫');
   if (cart.includes(id)){ toast('이미 장바구니에 있어요', '🛒'); return; }
   cart.push(id);
   renderCart();
-  toast(`<b>${byId(id).title}</b>을(를) 장바구니에 담았어요`, '🛒');
+  toast(`<b>${esc(g.title)}</b>을(를) 장바구니에 담았어요`, '🛒');
 }
 function renderCart(){
   const badge = $('#cartBadge');
@@ -1611,6 +1645,7 @@ function openPay(ids, viaCart = false){
     openAuth('login');
     return;
   }
+  if (ids.some(id => !byId(id) || byId(id).stock <= 0)) return toast('품절이거나 판매하지 않는 상품이 있어요.', '🚫');
   payItems = ids; fromCart = viaCart;
   renderPayForm();
   openModal('payModal');
@@ -1742,7 +1777,13 @@ function clearDownloads(){ dlTimers.forEach(clearInterval); dlTimers = []; }
    ============================================================ */
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]'); if (!el) return;
-  const id = el.dataset.id;
+  // 상품 버튼은 표의 id(숫자). 히어로 버튼은 이름(data-name)으로 id 를 찾는다
+  let id = el.dataset.id;
+  if (id === undefined && el.dataset.name){
+    id = idByName(el.dataset.name);
+    if (id === null){ toast('상품을 불러오는 중이에요. 잠시 뒤에 다시 눌러 주세요.', '⏳'); return; }
+  }
+  if (id !== undefined && /^\d+$/.test(String(id))) id = Number(id);
   switch (el.dataset.action){
     case 'buy':          e.stopPropagation(); openPay([id]); break;
     case 'detail':       if (e.target.closest('.wish')) return; openDetail(id); break;
@@ -1794,8 +1835,8 @@ const toTop = $('#toTop');
 addEventListener('scroll', () => toTop.classList.toggle('show', scrollY > 700), { passive: true });
 toTop.addEventListener('click', () => scrollTo({ top: 0 }));
 
-renderGrid();
-loadProducts();
+loadCategories();
+fetchProducts();
 </script>
 </body>
 </html>
