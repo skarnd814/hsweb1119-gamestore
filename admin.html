@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="purple">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GameStore 관리 — 회원 · 주문</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Russo+One&display=swap" rel="stylesheet">
+<style>
+/* 쇼핑몰(index.html)과 같은 색 · 글꼴 */
+:root{
+  --bg:#0a0c12; --bg-2:#0f121a; --surface:#151925; --surface-2:#1c2130; --surface-3:#252b3d;
+  --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.14);
+  --text:#eef1f8; --muted:#9aa3b8; --dim:#6b7489; --good:#4ade80; --warn:#fbbf24; --bad:#f87171;
+  --font:'Noto Sans KR',system-ui,-apple-system,'Malgun Gothic',sans-serif;
+  --font-display:'Russo One','Noto Sans KR',sans-serif;
+  --primary:#7c3aed; --primary-2:#db2777; --accent:#a78bfa; --primary-rgb:124,58,237;
+}
+[data-theme="cyan"]  {--primary:#0891b2;--primary-2:#2563eb;--accent:#22d3ee;--primary-rgb:8,145,178;}
+[data-theme="sunset"]{--primary:#ea580c;--primary-2:#db2777;--accent:#fb923c;--primary-rgb:234,88,12;}
+[data-theme="forest"]{--primary:#16a34a;--primary-2:#0d9488;--accent:#4ade80;--primary-rgb:22,163,74;}
+[data-theme="red"]   {--primary:#dc2626;--primary-2:#ea580c;--accent:#f87171;--primary-rgb:220,38,38;}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;font-family:var(--font);color:var(--text);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(900px 500px at 85% -10%, rgba(var(--primary-rgb),.16), transparent 60%);
+  background-attachment:fixed;
+}
+a{color:inherit;text-decoration:none}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+h1,h2,h3{margin:0;line-height:1.25}
+p{margin:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.container{width:min(1240px,100% - 32px);margin-inline:auto}
+
+.header{position:sticky;top:0;z-index:10;height:66px;background:rgba(10,12,18,.8);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.header .container{height:100%;display:flex;align-items:center;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-size:20px}
+.logo-mark{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:18px;background:linear-gradient(135deg,var(--primary),var(--primary-2))}
+.logo b{color:var(--accent);font-weight:400}
+.badge-admin{font-size:12px;font-weight:900;padding:2px 10px;border-radius:999px;background:rgba(var(--primary-rgb),.18);color:var(--accent);border:1px solid rgba(var(--primary-rgb),.4)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.who{color:var(--muted);font-size:13.5px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;padding:0 16px;border-radius:999px;font-weight:700;font-size:14px;white-space:nowrap;transition:.15s}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff}
+.btn-ghost{background:rgba(255,255,255,.06);border:1px solid var(--line-2)}
+.btn-ghost:hover{background:rgba(255,255,255,.12)}
+.btn-sm{height:32px;padding:0 12px;font-size:13px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+main{padding:28px 0 80px}
+h1{font-size:28px;font-weight:900;margin-bottom:4px}
+.lead{color:var(--muted);font-size:14px}
+.gate{text-align:center;padding:120px 20px;color:var(--muted)}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0 30px}
+.stat{padding:18px 20px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.stat small{color:var(--muted);font-size:13px}
+.stat b{display:block;font-family:var(--font-display);font-size:28px;font-weight:400}
+.stat b em{font-style:normal;color:var(--accent)}
+
+section{margin-top:34px}
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.sec-head h2{font-size:20px;font-weight:900}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.input,.select{height:38px;padding:0 12px;border-radius:10px;background:var(--bg-2);border:1px solid var(--line-2);outline:0;font-size:14px}
+.input:focus,.select:focus{border-color:rgba(var(--primary-rgb),.8)}
+.select option{background:var(--surface)}
+
+/* 표가 화면보다 넓으면 표 안에서만 좌우로 넘긴다 */
+.table-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--line);background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:860px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{position:sticky;top:0;background:var(--surface-2);color:var(--muted);font-weight:700;font-size:12.5px}
+tr:last-child td{border-bottom:0}
+tr.me td{background:rgba(var(--primary-rgb),.08)}
+td .input,td .select{height:32px;font-size:13px}
+td .pts{width:100px}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.items{max-width:280px;white-space:normal;color:var(--muted)}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+
+.toasts{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;display:grid;gap:8px;justify-items:center;pointer-events:none;max-width:calc(100% - 32px)}
+.toast{padding:12px 18px;border-radius:12px;font-size:14px;background:rgba(28,33,48,.96);border:1px solid var(--line-2);box-shadow:0 12px 30px rgba(0,0,0,.4)}
+
+@media (max-width:720px){
+  .stats{grid-template-columns:1fr}
+  .who{display:none}
+  .stat b{font-size:24px}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark">🎮</span>Game<b>Store</b></a>
+    <span class="badge-admin">관리</span>
+    <div class="header-right">
+      <span class="who" id="who"></span>
+      <a class="btn btn-ghost" href="index.html">쇼핑몰로</a>
+      <button class="btn btn-ghost" id="logoutBtn">로그아웃</button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <div class="gate" id="gate">관리자인지 확인하는 중…</div>
+
+  <div id="app" hidden>
+    <h1>회원 · 주문 관리</h1>
+    <p class="lead">등급 · 포인트 · 역할은 shop_admin_update_member 함수로만 바뀌어요. 관리자만 이 페이지를 쓸 수 있어요.</p>
+
+    <!-- 요약 숫자 -->
+    <div class="stats">
+      <div class="stat"><small>회원 수</small><b><em id="sMembers">-</em></b></div>
+      <div class="stat"><small>주문 건수</small><b><em id="sOrders">-</em></b></div>
+      <div class="stat"><small>주문 합계 (취소 제외)</small><b id="sTotal">-</b></div>
+    </div>
+
+    <!-- 회원 목록 -->
+    <section>
+      <div class="sec-head">
+        <h2>회원 목록</h2>
+        <div class="tools">
+          <input class="input" id="qName" type="search" placeholder="이름으로 검색" aria-label="이름 검색">
+          <select class="select" id="qGrade" aria-label="등급 필터">
+            <option value="">전체 등급</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>이름</th><th>이메일</th><th>연락처</th><th>등급</th><th>포인트</th><th>역할</th><th>가입일</th><th></th></tr></thead>
+          <tbody id="members"><tr><td colspan="8" class="empty">불러오는 중…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 주문 목록 -->
+    <section>
+      <div class="sec-head"><h2>주문 목록 <span class="lead">(최신순)</span></h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>번호</th><th>날짜</th><th>회원</th><th>상품</th><th class="num">합계</th><th>상태</th></tr></thead>
+          <tbody id="orders"><tr><td colspan="6" class="empty">불러오는 중…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<!-- 불러오는 순서: supabase-js(CDN) → db.js(연결 값과 db) → 이 페이지 스크립트 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script>
+// 쇼핑몰에서 고른 컬러 테마를 그대로 쓴다
+try { const t = localStorage.getItem('gs-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+
+// DB 등급 값(shop_profiles.grade) → 화면 이름. 이 프로젝트의 SQL 은 BRONZE~LEGEND 5단계를 쓴다
+const GRADES = [['BRONZE', '🥉 브론즈'], ['SILVER', '🥈 실버'], ['GOLD', '🥇 골드'], ['DIAMOND', '💎 다이아'], ['LEGEND', '👑 레전드']];
+const ROLES = [['member', '회원'], ['admin', '관리자']];
+const STATUSES = ['결제완료', '배송중', '배송완료', '취소'];
+
+const $ = s => document.querySelector(s);
+const fmt = n => Number(n).toLocaleString('ko-KR');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const day = d => new Date(d).toLocaleDateString('ko-KR');
+const opts = (list, cur) => list.map(([v, label]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${label}</option>`).join('');
+function toast(msg){
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), 2800);
+}
+
+let myId = null;
+let profileById = new Map();   // 주문 목록에서 회원 이메일을 보여 줄 때 쓴다
+
+$('#qGrade').insertAdjacentHTML('beforeend', opts(GRADES, ''));
+
+/* ① 들어온 사람이 관리자인지 확인 — 아니면 쇼핑몰로 돌려보낸다 */
+async function gate(){
+  if (!db){ location.replace('index.html'); return; }
+  const { data: { session } } = await db.auth.getSession();
+  if (!session){ location.replace('index.html'); return; }
+  const { data: me, error } = await db.from('shop_profiles').select('id, email, role').eq('id', session.user.id).single();
+  if (error || !me || me.role !== 'admin'){ location.replace('index.html'); return; }
+  myId = me.id;
+  $('#who').textContent = me.email;
+  $('#gate').hidden = true;
+  $('#app').hidden = false;
+  await loadMembers();
+  await loadOrders();
+}
+
+/* ② 회원 목록 (이름 검색 · 등급 필터는 DB 에서 거른다) */
+async function loadMembers(){
+  let q = db.from('shop_profiles').select('id, email, name, phone, grade, points, role, created_at').order('created_at', { ascending: false });
+  const name = $('#qName').value.trim().replace(/[%_\\]/g, '');
+  if (name) q = q.ilike('name', `%${name}%`);
+  if ($('#qGrade').value) q = q.eq('grade', $('#qGrade').value);
+  const { data, error } = await q;
+  if (error){ $('#members').innerHTML = `<tr><td colspan="8" class="empty">회원을 읽지 못했어요: ${esc(error.message)}</td></tr>`; return; }
+  if (!name && !$('#qGrade').value){
+    profileById = new Map(data.map(p => [p.id, p]));
+    $('#sMembers').textContent = fmt(data.length);
+  }
+  $('#members').innerHTML = data.length ? data.map(p => `
+    <tr data-id="${p.id}"${p.id === myId ? ' class="me"' : ''}>
+      <td>${esc(p.name) || '<span class="lead">-</span>'}</td>
+      <td>${esc(p.email)}</td>
+      <td>${esc(p.phone) || '<span class="lead">-</span>'}</td>
+      <td><select class="select" data-f="grade" aria-label="등급">${opts(GRADES, p.grade)}</select></td>
+      <td><input class="input pts" data-f="points" type="number" min="0" step="1" value="${p.points}" aria-label="포인트"></td>
+      <td><select class="select" data-f="role" aria-label="역할">${opts(ROLES, p.role)}</select></td>
+      <td>${day(p.created_at)}</td>
+      <td><button class="btn btn-primary btn-sm" data-save>저장</button></td>
+    </tr>`).join('') : `<tr><td colspan="8" class="empty">조건에 맞는 회원이 없어요.</td></tr>`;
+}
+
+/* ③ 등급 · 포인트 · 역할 저장 — 회원 표를 직접 update 하지 않고 함수로만 바꾼다 */
+$('#members').addEventListener('click', async e => {
+  const btn = e.target.closest('[data-save]'); if (!btn) return;
+  const tr = btn.closest('tr');
+  const grade = tr.querySelector('[data-f=grade]').value;
+  const role = tr.querySelector('[data-f=role]').value;
+  const raw = tr.querySelector('[data-f=points]').value.trim();
+  if (!/^\d+$/.test(raw)){ toast('포인트에는 0 이상의 정수만 넣을 수 있어요.'); return; }
+  if (tr.dataset.id === myId && role !== 'admin' && !confirm('내 역할을 회원으로 바꾸면 이 관리 페이지에 다시 들어올 수 없어요. 계속할까요?')) return;
+  btn.disabled = true;
+  const { error } = await db.rpc('shop_admin_update_member', {
+    p_user_id: tr.dataset.id, p_grade: grade, p_points: Number(raw), p_role: role,
+  });
+  btn.disabled = false;
+  if (error){ toast('저장하지 못했어요: ' + error.message); return; }
+  toast('저장했어요.');
+  if (tr.dataset.id === myId && role !== 'admin'){ location.replace('index.html'); return; }
+  loadMembers();
+});
+let nameTimer;
+$('#qName').addEventListener('input', () => { clearTimeout(nameTimer); nameTimer = setTimeout(loadMembers, 250); });
+$('#qGrade').addEventListener('change', loadMembers);
+
+/* ④ 주문 목록 (최신순) · 상태 바꾸기, ⑤ 요약 숫자 */
+async function loadOrders(){
+  const { data, error } = await db.from('shop_orders')
+    .select('id, user_id, total, status, created_at, shop_order_items(qty, shop_products(name))')
+    .order('created_at', { ascending: false });
+  if (error){ $('#orders').innerHTML = `<tr><td colspan="6" class="empty">주문을 읽지 못했어요: ${esc(error.message)}</td></tr>`; return; }
+  $('#sOrders').textContent = fmt(data.length);
+  $('#sTotal').innerHTML = `<em>${fmt(data.filter(o => o.status !== '취소').reduce((s, o) => s + o.total, 0))}</em>원`;
+  $('#orders').innerHTML = data.length ? data.map(o => {
+    const p = profileById.get(o.user_id);
+    return `<tr data-id="${o.id}">
+      <td>#${o.id}</td>
+      <td>${new Date(o.created_at).toLocaleString('ko-KR')}</td>
+      <td>${p ? esc(p.name || p.email) : '<span class="lead">탈퇴 회원</span>'}</td>
+      <td class="items">${o.shop_order_items.map(it => `${esc(it.shop_products ? it.shop_products.name : '판매 종료 상품')} × ${it.qty}`).join(', ') || '-'}</td>
+      <td class="num">${fmt(o.total)}원</td>
+      <td><select class="select" data-status aria-label="주문 상태">${STATUSES.map(s => `<option${s === o.status ? ' selected' : ''}>${s}</option>`).join('')}</select></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="6" class="empty">아직 주문이 없어요.</td></tr>`;
+}
+$('#orders').addEventListener('change', async e => {
+  const sel = e.target.closest('[data-status]'); if (!sel) return;
+  const id = Number(sel.closest('tr').dataset.id);
+  sel.disabled = true;
+  const { error } = await db.from('shop_orders').update({ status: sel.value }).eq('id', id);
+  sel.disabled = false;
+  if (error){ toast('상태를 바꾸지 못했어요: ' + error.message); loadOrders(); return; }
+  toast(`주문 #${id} → ${sel.value}`);
+  loadOrders();
+});
+
+$('#logoutBtn').addEventListener('click', async () => { await db.auth.signOut(); location.replace('index.html'); });
+
+gate();
+</script>
+</body>
+</html>

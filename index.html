@@ -119,6 +119,7 @@ ul{margin:0;padding:0;list-style:none}
 /* 로그인 상태에 따라 보이기 (body.logged-in) */
 body:not(.logged-in) .user-only{display:none !important}
 body.logged-in .guest-only{display:none !important}
+body:not(.is-admin) .admin-only{display:none !important}   /* 관리자에게만 「관리」 링크 */
 .my-info{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:14px;padding:14px;border-radius:12px;background:var(--bg-2);margin:4px 0 18px}
 .my-info dt{color:var(--muted)}
 .my-info dd{margin:0;font-weight:700}
@@ -674,6 +675,7 @@ section.block{padding:90px 0 0}
       <a href="#membership">멤버십</a>
       <a href="#points">포인트</a>
       <a href="#faq">고객센터</a>
+      <a href="admin.html" class="admin-only">관리</a>
     </nav>
 
     <div class="header-right">
@@ -711,6 +713,7 @@ section.block{padding:90px 0 0}
   <a href="#membership">멤버십</a>
   <a href="#points">포인트</a>
   <a href="#faq">고객센터</a>
+  <a href="admin.html" class="admin-only">⚙ 관리</a>
   <div class="row guest-only">
     <button class="btn btn-ghost" data-action="auth" data-tab="login">로그인</button>
     <button class="btn btn-primary" data-action="auth" data-tab="signup">회원가입</button>
